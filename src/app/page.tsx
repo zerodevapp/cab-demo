@@ -2,7 +2,7 @@
 import { ConnectButton } from "@/components/Button";
 import Navbar from "@/components/Navbar";
 import SmartAccountBlock from "@/components/SmartAccountBlock";
-import { Flex, Switch, Text, Loader } from "@mantine/core";
+import { Flex, Switch, Text } from "@mantine/core";
 import { useKernelClient } from "@zerodev/waas";
 import { useState, useEffect } from "react";
 import { useModal, usePaymasterRegistered } from "@/hooks";
@@ -35,7 +35,7 @@ export default function Home() {
                 className="mt-4"
               />
             </div>
-            <SmartAccountBlock />
+            <SmartAccountBlock cab={checked} />
           </>
         )}
       </div>

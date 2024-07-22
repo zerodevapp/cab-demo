@@ -279,4 +279,4 @@ export const vaultManagerAbi = [
      ],
      "stateMutability":"nonpayable"
   }
-];
+] as const;

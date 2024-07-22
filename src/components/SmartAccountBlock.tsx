@@ -2,14 +2,15 @@
 import { Button, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
-  useBalance,
   useKernelClient,
   useSendUserOperation,
 } from "@zerodev/waas";
+import SmartAccountBalanceBlock from "@/components/SmartAccountBalanceBlock";
+import EOABalanceBlock from "@/components/EOABalanceBlock";
 import { useEffect } from "react";
 import { parseAbi } from "viem";
 
-export default function SmartAccountBlock() {
+export default function SmartAccountBlock({cab}: {cab: boolean}) {
   const { address } = useKernelClient();
 
   const {
@@ -23,7 +24,6 @@ export default function SmartAccountBlock() {
     //   paymaster: "SPONSOR",
     // }
   );
-  const { data } = useBalance();
   const tokenAddress = "0x3870419Ba2BBf0127060bCB37f69A1b1C090992B";
   const abi = parseAbi(["function mint(address _to, uint256 amount) public"]);
 
@@ -40,11 +40,7 @@ export default function SmartAccountBlock() {
     <>
       <Title order={3}>Smart Account</Title>
       <div className="mb-4">Address: {address}</div>
-      {data && (
-        <div className="mb-4">
-          Balance: {`${data.formatted} ${data.symbol}`}
-        </div>
-      )}
+      <SmartAccountBalanceBlock cab={cab} />
       <div className="flex flex-row justify-center items-center space-x-4 mt-4">
         <Button
           variant="outline"
@@ -73,6 +69,7 @@ export default function SmartAccountBlock() {
         </Button>
       </div>
       {hash && <div className="mt-4">UserOp Hash: {hash}</div>}
+      <EOABalanceBlock />
     </>
   );
 }
