@@ -18,7 +18,7 @@ import {
 } from "@zerodev/sdk";
 import { walletClientToSmartAccountSigner } from 'permissionless'
 import type { EntryPoint, GetEntryPointVersion, UserOperation } from 'permissionless/types'
-import { useGetData, useModal, useTokenBalance } from "@/hooks";
+import { useGetData, useModal, useTokenBalance, useCabBalance } from "@/hooks";
 import { Button, Card, Text, Group, Badge, ActionIcon, CopyButton, Tooltip, Flex, ThemeIcon } from "@mantine/core";
 import { IconCopy, IconCheck } from '@tabler/icons-react';
 
@@ -38,15 +38,18 @@ export default function CABUserOp({
   const [kernelClient, setKernelClient] = useState<KernelAccountClient<EntryPoint>>();
   const { data: walletClient } = useWalletClient();
   const { kernelAccount } = useKernelClient();
+  const { refetch } = useTokenBalance({ address,  chainId })
+  const { refetch: refetchCabBalance } = useCabBalance();
+
   const { data: userOpHash, write: writeData, isPending: isPendingData } = useGetData({
     kernelClient,
     chainId,
     onSuccess: () => {
       setActiveStep(1);
       refetch();
+      refetchCabBalance();
     }
   })
-  const { refetch } = useTokenBalance({ address,  chainId })
   const { closeCABModal } = useModal();
   
   useEffect(() => {

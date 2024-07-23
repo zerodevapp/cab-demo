@@ -55,7 +55,7 @@ export function useRegisterPaymaster({
     const selectedChain = getChain(chainId);
     const isRepay = selectedChain.isRepay;
 
-    const amount = parseEther("0.1");
+    const amount = parseEther("0.3");
 
     const txs = isRepay ? [
       // register paymaster, mint token, deposit to vaultManager

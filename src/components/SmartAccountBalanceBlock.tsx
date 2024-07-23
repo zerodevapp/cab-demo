@@ -2,7 +2,7 @@ import { useKernelClient } from "@zerodev/waas";
 import { useCabBalance, useTokenBalance } from "@/hooks";
 import { formatEther } from "viem";
 import { supportedChains } from "@/utils/constants";
-import { Text, Card, Badge, Stack, Flex } from "@mantine/core";
+import { Text, Card, Badge, Stack, Flex, Loader } from "@mantine/core";
 import { BalanceItem } from "@/components/BalanceItem";
 
 export default function SmartBalanceBlock({cab}: {cab: boolean}) {
@@ -22,7 +22,7 @@ export default function SmartBalanceBlock({cab}: {cab: boolean}) {
       <Flex align="center" mb="md">
         <Text size="xl" w={300} mr="xs">Smart Account</Text>
         <Badge color="blue" variant="light">
-          {smartAccountAddress.slice(0, 6)}...{smartAccountAddress.slice(-2)}
+          {smartAccountAddress?.slice(0, 6)}...{smartAccountAddress?.slice(-2)}
         </Badge>
       </Flex>
 
@@ -44,7 +44,7 @@ export default function SmartBalanceBlock({cab}: {cab: boolean}) {
         {cab && balance && (
           <BalanceItem
             chain="CAB"
-            balance={formatEther(balance.totalBalance)}
+            balance={formatEther(balance)}
             highlight
           />
         )}

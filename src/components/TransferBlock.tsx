@@ -48,7 +48,7 @@ export default function TransferBlock({ cab }: { cab: boolean }) {
   
   const { disabled, loaidng } = useMemo(() => {
     const loaidng = isTokenBalancePending || isCabBalancePending;
-    const disabled = cab ? (cabBalance?.totalBalance ?? 0n) < parseEther("0.01") : (tokenBalance ?? 0n) < parseEther("0.01");
+    const disabled = cab ? (cabBalance ?? 0n) < parseEther("0.01") : (tokenBalance ?? 0n) < parseEther("0.01");
     return {
       disabled,
       loaidng

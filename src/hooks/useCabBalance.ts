@@ -1,58 +1,33 @@
-import { useReadContract } from "wagmi";
-import { vaultManagerAddress, testErc20Address, supportedChains} from "@/utils/constants";
-import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
+import { supportedChains, cabPaymasterUrl, repayTokens, getChain } from "@/utils/constants";
+import { http } from "viem";
 import { useKernelClient } from "@zerodev/waas";
-import { useMemo, useCallback } from "react";
+import { createZeroDevCABPaymasterClient } from "@zerodev/cab"
+import { useQuery } from '@tanstack/react-query';
 
 export function useCabBalance() {
-  const { address } = useKernelClient();
-  const { data: repayData, isPending: isRepayPending, refetch: repayRefetch } = useReadContract({
-    address: vaultManagerAddress,
-    abi: vaultManagerAbi,
-    functionName: "getAccountTokenBalance",
-    args: [address, testErc20Address],
-    chainId: supportedChains[0].id,
-  })
-  const { data: sponsorData, isPending: isSponsorPending, refetch: sponsorRefetch } = useReadContract({
-    address: vaultManagerAddress,
-    abi: vaultManagerAbi,
-    functionName: "getAccountTokenBalance",
-    args: [address, testErc20Address],
-    chainId: supportedChains[1].id,
-  })
+  const { address, kernelAccount } = useKernelClient();
 
-  const refetch = useCallback(() => {
-    repayRefetch();
-    sponsorRefetch();
-  }, [repayRefetch, sponsorRefetch]);
+  return useQuery({
+    queryKey: ['cabBalance', address],
+    queryFn: async () => {
+      if (!address || !kernelAccount) {
+        throw new Error("Address or kernel account not available");
+      }
 
-  const { balances, totalBalance } = useMemo(() => {
-    return {
-      totalBalance: (repayData ?? 0n) + (sponsorData ?? 0n ),
-      balances: [
-        {
-          chain: supportedChains[0].chain,
-          balance: repayData ?? 0n,
-        },
-        {
-          chain: supportedChains[1].chain,
-          balance: sponsorData ?? 0n,
-        }
-      ]
-    }
-  }, [repayData, sponsorData]);
-  
-  const isPending = useMemo(() => {
-    return isRepayPending || isSponsorPending;
-  }, [isRepayPending, isSponsorPending]);
+      const cabPaymasterClient = createZeroDevCABPaymasterClient({
+        chain: getChain(supportedChains[1].id).chain,
+        entryPoint: kernelAccount.entryPoint,
+        transport: http(cabPaymasterUrl),
+        account: kernelAccount
+      });
 
-  return {
-    data: isPending ? undefined : {
-      totalBalance,
-      balances: balances.filter(balance => balance.balance > 0n)
-    }, 
-    isPending,
-    refetch
-  }
+      const balance = await cabPaymasterClient.getCabBalance({
+        address,
+        repayTokens
+      });
 
+      return balance;
+    },
+    enabled: !!address && !!kernelAccount,
+  });
 }
