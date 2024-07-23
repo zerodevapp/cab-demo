@@ -3,21 +3,28 @@ import { type KernelAccountClient } from "@zerodev/sdk";
 import { RepayToken } from "@/types";
 import { useCallback, useState } from "react";
 import { createZeroDevCABPaymasterClient } from "@zerodev/cab"
-import { getChain, cabPaymasterUrl } from "@/utils/constants";
+import { getChain, cabPaymasterUrl, getBundler } from "@/utils/constants";
 import { http, type Hex } from 'viem';
 import { sendUserOperation } from "permissionless/actions";
+import { createBundlerClient } from "permissionless";
+import { useTokenBalance } from "@/hooks";
+import { useAccount } from "wagmi";
 
 export type UseGetDataParams = {
   kernelClient: KernelAccountClient<EntryPoint> | undefined,
   chainId: number,
+  onSuccess?: ({ userOpHash }: { userOpHash: Hex }) => void
 }
 
 export function useGetData({
   kernelClient,
   chainId,
+  onSuccess,
 }: UseGetDataParams) {
+  const { address } = useAccount();
   const [isPending, setIsPending] = useState(false);
   const [userOpHash, setUserOpHash] = useState<Hex>();
+  const { refetch } = useTokenBalance({ chainId, address: address });
 
   const write = useCallback(async ({ userOperation, repayTokens }: { 
     userOperation: UserOperation<GetEntryPointVersion<EntryPoint>>,
@@ -53,13 +60,23 @@ export function useGetData({
           userOperation,
           entryPoint: kernelAccount.entryPoint,
         })
+        const bundlerClient = createBundlerClient({
+          chain: getChain(chainId).chain,
+          entryPoint: kernelAccount.entryPoint,
+          transport: http(getBundler(chainId)),
+        })
+        await bundlerClient.waitForUserOperationReceipt({
+          hash: userOpHash,
+        })
         console.log("userOpHash", userOpHash);
         setUserOpHash(userOpHash)
+        onSuccess?.({ userOpHash });
+        refetch();
       } catch (error) {}
       finally {
         setIsPending(false);
       }
-  }, [kernelClient, chainId]);
+  }, [kernelClient, chainId, onSuccess, refetch]);
 
   return {
     data: userOpHash,

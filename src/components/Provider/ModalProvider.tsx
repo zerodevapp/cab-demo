@@ -10,7 +10,9 @@ import {
 import ConnectModal from "../Modal/ConnectModal";
 import RegisterModal from "../Modal/RegisterModal";
 import CABModal from "../Modal/CABModal";
-import { Call } from "@/types";
+import { RepayTokenInfo, SponsorTokenInfo } from "@/types";
+import { GetEntryPointVersion, UserOperation } from 'permissionless/types'
+import { type EntryPoint } from 'permissionless/types'
 
 export function useModalStateValue() {
   const [isModalOpen, setModalOpen] = useState(false);
@@ -30,7 +32,18 @@ interface ModalContextValue {
   cabModalOpen: boolean;
   openConnectModal?: ({ version }: { version: KernelVersionType }) => void;
   openRegisterModal?: () => void;
-  openCABModal?: ({ calls, chainId }: { calls: Call[], chainId: number}) => void;
+  openCABModal?: (
+    { 
+      repayTokensInfo,
+      userOperation,
+      chainId,
+    }: 
+    { 
+      sponsorTokensInfo: SponsorTokenInfo[],
+      repayTokensInfo: RepayTokenInfo[],
+      userOperation: UserOperation<GetEntryPointVersion<EntryPoint>>,
+      chainId: number,
+    }) => void;
   closeConnectModal?: () => void;
   closeRegisterModal?: () => void;
   closeCABModal?: () => void;
@@ -50,7 +63,9 @@ export function ModalProvider({ children }: ModalProviderProps) {
   const { kernelAccount } = useKernelClient();
   const [kernelVersion, setKernelVersion] = useState<KernelVersionType>("v3");
   const [chainId, setChainId] = useState(1);
-  const [calls, setCalls] = useState<Call[]>([]);
+  const [repayTokensInfo, setRepayTokensInfo] = useState<RepayTokenInfo[]>([]);
+  const [sponsorTokensInfo, setSponsorTokensInfo] = useState<SponsorTokenInfo[]>([]);
+  const [userOperation, setUserOperation] = useState<UserOperation<GetEntryPointVersion<EntryPoint>>>();
 
   const {
     closeModal: closeConnectModal,
@@ -92,9 +107,24 @@ export function ModalProvider({ children }: ModalProviderProps) {
   );
 
   const openCABModalWithCalls = useCallback(
-    ({ calls, chainId } : {calls: Call[], chainId: number}) => {
-      setCalls(calls);
+    (
+      { 
+        sponsorTokensInfo,
+        repayTokensInfo,
+        userOperation,
+        chainId,
+      } : 
+      {
+        sponsorTokensInfo: SponsorTokenInfo[],
+        repayTokensInfo: RepayTokenInfo[],
+        userOperation: UserOperation<GetEntryPointVersion<EntryPoint>>,
+        chainId: number
+      }
+    ) => {
       setChainId(chainId);
+      setSponsorTokensInfo(sponsorTokensInfo);
+      setRepayTokensInfo(repayTokensInfo);
+      setUserOperation(userOperation);
       openCABModal();
     },
     [openCABModal]
@@ -155,7 +185,9 @@ export function ModalProvider({ children }: ModalProviderProps) {
         onClose={closeCABModal}
         open={cabModalOpen}
         chainId={chainId}
-        calls={calls}
+        sponsorTokensInfo={sponsorTokensInfo}
+        repayTokensInfo={repayTokensInfo}
+        userOperation={userOperation}
       />
     </ModalContext.Provider>
   );

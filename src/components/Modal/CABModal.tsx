@@ -1,22 +1,30 @@
 import { Modal } from "@mantine/core";
-import { Call } from "@/types";
+import { Call, RepayTokenInfo, SponsorTokenInfo } from "@/types";
 import CABUserOp from "./CAB/CABUserOp";
+import { UserOperation } from "permissionless";
+import { EntryPoint, GetEntryPointVersion } from "permissionless/types";
 
 export interface CABModalProps {
   open: boolean,
   onClose: () => void;
-  calls: Call[];
   chainId: number;
+  sponsorTokensInfo?: SponsorTokenInfo[];
+  repayTokensInfo?: RepayTokenInfo[];
+  userOperation?: UserOperation<GetEntryPointVersion<EntryPoint>>;
 }
 
-export default function CABModal({ open, onClose, calls, chainId }: CABModalProps) {
-  const titleId = "Send Useroperation with CAB";
-
+export default function CABModal({ 
+  open,
+  onClose,
+  sponsorTokensInfo,
+  repayTokensInfo,
+  userOperation,
+  chainId,
+}: CABModalProps) {
   return (
     <Modal
       opened={open}
       onClose={onClose}
-      title={titleId}
       size="lg"
       styles={{
         title: {
@@ -24,7 +32,12 @@ export default function CABModal({ open, onClose, calls, chainId }: CABModalProp
         },
       }}
     >
-     <CABUserOp calls={calls} chainId={chainId} />
+     <CABUserOp 
+      chainId={chainId}
+      sponsorTokensInfo={sponsorTokensInfo}
+      repayTokensInfo={repayTokensInfo}
+      userOperation={userOperation} 
+    />
     </Modal>
   )
 }

@@ -76,3 +76,8 @@ export const testErc20Address: Address = "0x3870419Ba2BBf0127060bCB37f69A1b1C090
 export const testErc20VaultAddress: Address = "0xdCE76Da5c1F1706E4fA2a806c0507f1bb4BC3Bf6"
 
 export const vaultManagerAddress: Address = "0xc9C27ca8197cA1821E1c24C1421167c815CC00A0"
+
+export const repayTokens = [{
+  address: testErc20Address,
+  chainId: supportedChains[0].id,
+}];

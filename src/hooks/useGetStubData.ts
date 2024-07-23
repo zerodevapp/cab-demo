@@ -1,15 +1,8 @@
-import {
-  type KernelAccountClient,
-  type KernelSmartAccount,
-} from "@zerodev/sdk";
+import { type KernelAccountClient } from "@zerodev/sdk";
 import { GetEntryPointVersion, UserOperation, type EntryPoint } from 'permissionless/types'
 import { useCallback, useState } from "react";
-import {
-  type Transport,
-  type Chain,
-  http,
-} from 'viem';
-import { Call, RepayToken, RepayTokenInfo } from "@/types";
+import { http } from 'viem';
+import { Call, RepayToken, RepayTokenInfo, SponsorTokenInfo } from "@/types";
 import { getChain, cabPaymasterUrl } from "@/utils/constants";
 import { createZeroDevCABPaymasterClient } from "@zerodev/cab"
 import { withdrawCall } from "@/utils/withdrawCall"
@@ -18,16 +11,25 @@ import { createInvoiceCall } from "@/utils/createInvoiceCall"
 export type UseGetStubDataParams = {
   kernelClient: KernelAccountClient<EntryPoint> | undefined,
   chainId: number,
+  onSuccess?: (
+    { userOperation, repayTokensInfo }: 
+    { 
+      userOperation: UserOperation<GetEntryPointVersion<EntryPoint>>, 
+      repayTokensInfo: RepayTokenInfo[] 
+      sponsorTokensInfo: SponsorTokenInfo[]
+    }
+  ) => void
 }
 
 export function useGetStubData({
   kernelClient,
-  chainId
+  chainId,
+  onSuccess
 }: UseGetStubDataParams) {
   const [isPending, setIsPending] = useState(false);
   const [stubData, setStubData] = useState<{
     userOperation: UserOperation<GetEntryPointVersion<EntryPoint>>,
-    repayTokens: RepayTokenInfo[]
+    repayTokensInfo: RepayTokenInfo[]
   }>();
 
   const write = useCallback(async ({ calls, repayTokens }: { calls: Call[], repayTokens: RepayToken[] }) => {
@@ -107,14 +109,15 @@ export function useGetStubData({
 
       setStubData({
         userOperation,
-        repayTokens: paymasterStubDataRes.repayTokensInfo
+        repayTokensInfo: paymasterStubDataRes.repayTokensInfo
       })
+      onSuccess?.({ userOperation, sponsorTokensInfo: sponsorTokenResponse.sponsorTokensInfo, repayTokensInfo: paymasterStubDataRes.repayTokensInfo });
     } catch (err) {
     } finally {
       setIsPending(false);
     }
     
-  }, [kernelClient, chainId]);
+  }, [kernelClient, chainId, onSuccess]);
 
   return {
     data: stubData,

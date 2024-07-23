@@ -1,15 +1,15 @@
 import { useWalletClient } from "wagmi";
 import { useKernelClient } from "@zerodev/waas";
-import { Call } from "@/types";
+import { RepayTokenInfo, SponsorTokenInfo } from "@/types";
 import { useState, useEffect } from "react";
 import {
   getChain,
   getPublicRpc,
   getBundler,
-  testErc20Address,
   supportedChains,
+  repayTokens,
 } from "@/utils/constants";
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, http, formatEther } from 'viem';
 import { signerToEcdsaValidator } from '@zerodev/ecdsa-validator';
 import {
   type KernelAccountClient,
@@ -17,22 +17,32 @@ import {
   createKernelAccountClient,
 } from "@zerodev/sdk";
 import { walletClientToSmartAccountSigner } from 'permissionless'
-import { type EntryPoint } from 'permissionless/types'
-import { useGetStubData, useGetData, useModal } from "@/hooks";
-import { Button, Loader } from "@mantine/core";
+import type { EntryPoint, GetEntryPointVersion, UserOperation } from 'permissionless/types'
+import { useGetData, useModal } from "@/hooks";
+import { Button, Card, Text, Group, Badge, ActionIcon, CopyButton, Tooltip, Flex, ThemeIcon } from "@mantine/core";
+import { IconCopy, IconCheck } from '@tabler/icons-react';
 
-export default function CABUserOp({ calls, chainId }: { calls: Call[], chainId: number }) {
+export default function CABUserOp({
+  sponsorTokensInfo,
+  repayTokensInfo,
+  userOperation,
+  chainId,
+}: { 
+  sponsorTokensInfo: SponsorTokenInfo[] | undefined,
+  repayTokensInfo: RepayTokenInfo[] | undefined, 
+  userOperation: UserOperation<GetEntryPointVersion<EntryPoint>> | undefined, 
+  chainId: number,
+}) {
   const [activeStep, setActiveStep] = useState(0);
   const [kernelClient, setKernelClient] = useState<KernelAccountClient<EntryPoint>>();
   const { data: walletClient } = useWalletClient();
   const { kernelAccount } = useKernelClient();
-  const { data, write, isPending } = useGetStubData({
-    kernelClient,
-    chainId
-  })
   const { data: userOpHash, write: writeData, isPending: isPendingData } = useGetData({
     kernelClient,
-    chainId
+    chainId,
+    onSuccess: () => {
+      setActiveStep(1);
+    }
   })
   const { closeCABModal } = useModal();
   
@@ -74,55 +84,78 @@ export default function CABUserOp({ calls, chainId }: { calls: Call[], chainId: 
     initializeKernelClient();
   }, [walletClient, kernelAccount, chainId]);
 
-  const repayTokens = [{
-    address: testErc20Address,
-    chainId: supportedChains[0].id,
-  }];
- 
-  
   return (
-    <div>
-      {activeStep === 0 && (
-        <div>
-          {repayTokens.map((token, index) => (
-            <div key={index}>
-              <p>Address: {token.address}</p>
-              <p>Chain ID: {token.chainId}</p>
-              {/* Add selection logic here if needed */}
-            </div>
-          ))}
-          <Button onClick={() => {
-            setActiveStep(1);
-            write({ calls, repayTokens })}
-          }>Next</Button>
-        </div>
-      )}
-      {activeStep === 1 && (
-        isPending ? <Loader /> : (
-          <div>
-            {data?.repayTokens.map((token, index) => (
-              <div key={index}>
-                <p>Vault: {token.vault}</p>
-                <p>Chain ID: {token.chainId}</p>
-                <p>Amount: {token.amount}</p>
-              </div>
-            ))}
-            <Button onClick={() => {
-              if (!data) return;
-              setActiveStep(2)
-              writeData({ userOperation: data.userOperation, repayTokens })
-            }}>Confirm</Button>
-          </div>
-        )
-      )}
-      {activeStep === 2 && (
-        isPendingData ? <Loader /> : (
-          <div>
-            <p>UserOp Hash: {userOpHash}</p>
-            <Button disabled={!closeCABModal} onClick={() => closeCABModal?.() }>Close</Button>
-          </div>
-        )
-      )}
-    </div>
-  )
+    <Card shadow="sm" padding="lg" radius="md" withBorder>
+      <Card.Section p="md">
+        {activeStep === 0 && (
+          (
+            <>
+              <Text size="lg" w={700} mb="md">Sponsor Tokens</Text>
+              {sponsorTokensInfo?.map((token, index) => (
+                <Card key={index} shadow="xs" p="sm" radius="md" withBorder mb="sm">
+                  <Group p="apart">
+                    <Text>Token</Text>
+                    <Badge color="blue">{token.address.slice(0, 6)}...{token.address.slice(-4)}</Badge>
+                  </Group>
+                  <Group p="apart" mt="xs">
+                    <Text>Chain</Text>
+                    <Badge color="green">{supportedChains.find(chain => chain.id === chainId)?.chain.name || chainId}</Badge>
+                  </Group>
+                  <Group p="apart" mt="xs">
+                    <Text>Amount</Text>
+                    <Badge color="yellow">{formatEther(BigInt(token.amount))}</Badge>
+                  </Group>
+                </Card>
+              ))}
+              <Text size="lg" w={700} mb="md">Repay Tokens</Text>
+              {repayTokensInfo?.map((token, index) => (
+                <Card key={index} shadow="xs" p="sm" radius="md" withBorder mb="sm">
+                  <Group p="apart">
+                    <Text>Vault</Text>
+                    <Badge color="blue">{token.vault.slice(0, 6)}...{token.vault.slice(-4)}</Badge>
+                  </Group>
+                  <Group p="apart" mt="xs">
+                    <Text>Chain</Text>
+                    <Badge color="green">{supportedChains.find(chain => chain.id === token.chainId)?.chain.name || token.chainId}</Badge>
+                  </Group>
+                  <Group p="apart" mt="xs">
+                    <Text>Amount</Text>
+                    <Badge color="yellow">{formatEther(token.amount)}</Badge>
+                  </Group>
+                </Card>
+              ))}
+              <Button fullWidth mt="md" loading={isPendingData} onClick={() => {
+                if (!userOperation) return;
+                writeData({ userOperation: userOperation, repayTokens });
+              }}>Confirm Transaction</Button>
+            </>
+          )
+        )}
+
+        {activeStep === 1 && (
+          <Flex direction="column" align="center" gap="md">
+            <ThemeIcon color="teal" size="xl" radius="xl">
+              <IconCheck size={30} />
+            </ThemeIcon>            
+            <Text size="sm" c="dimmed">UserOp Hash</Text>
+            <Group gap="xs" p="center">
+              <Text size="sm">{userOpHash?.slice(0, 6)}...{userOpHash?.slice(-4)}</Text>
+              <CopyButton value={userOpHash || ''} timeout={2000}>
+                {({ copied, copy }) => (
+                  <Tooltip label={copied ? 'Copied' : 'Copy'} withArrow position="right">
+                    <ActionIcon color={copied ? 'teal' : 'gray'} onClick={copy} size="sm">
+                      {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </CopyButton>
+            </Group>
+            <Button fullWidth mt="md" disabled={!closeCABModal} onClick={() => closeCABModal?.()}>
+              Close
+            </Button>
+          </Flex>
+        )}
+      </Card.Section>
+    </Card>
+  );
 }
