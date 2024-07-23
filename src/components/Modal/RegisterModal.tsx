@@ -10,15 +10,12 @@ export default function RegisterModal({
   onClose,
   open,
 }: RegisterModalProps) {
-  const titleId = "Register CAB Paymaster";
-
   return (
     <Modal
       opened={open}
       onClose={() => {
         onClose();
       }}
-      title={titleId}
       withCloseButton={false}
       closeOnClickOutside={false}
     >

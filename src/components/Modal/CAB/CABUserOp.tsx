@@ -1,4 +1,4 @@
-import { useWalletClient } from "wagmi";
+import { useAccount, useWalletClient } from "wagmi";
 import { useKernelClient } from "@zerodev/waas";
 import { RepayTokenInfo, SponsorTokenInfo } from "@/types";
 import { useState, useEffect } from "react";
@@ -18,7 +18,7 @@ import {
 } from "@zerodev/sdk";
 import { walletClientToSmartAccountSigner } from 'permissionless'
 import type { EntryPoint, GetEntryPointVersion, UserOperation } from 'permissionless/types'
-import { useGetData, useModal } from "@/hooks";
+import { useGetData, useModal, useTokenBalance } from "@/hooks";
 import { Button, Card, Text, Group, Badge, ActionIcon, CopyButton, Tooltip, Flex, ThemeIcon } from "@mantine/core";
 import { IconCopy, IconCheck } from '@tabler/icons-react';
 
@@ -33,6 +33,7 @@ export default function CABUserOp({
   userOperation: UserOperation<GetEntryPointVersion<EntryPoint>> | undefined, 
   chainId: number,
 }) {
+  const { address } = useAccount();
   const [activeStep, setActiveStep] = useState(0);
   const [kernelClient, setKernelClient] = useState<KernelAccountClient<EntryPoint>>();
   const { data: walletClient } = useWalletClient();
@@ -42,8 +43,10 @@ export default function CABUserOp({
     chainId,
     onSuccess: () => {
       setActiveStep(1);
+      refetch();
     }
   })
+  const { refetch } = useTokenBalance({ address,  chainId })
   const { closeCABModal } = useModal();
   
   useEffect(() => {
