@@ -1,11 +1,13 @@
 "use client";
 import { ConnectButton } from "@/components/Button";
 import Navbar from "@/components/Navbar";
-import SmartAccountBlock from "@/components/SmartAccountBlock";
 import { Flex, Switch, Text } from "@mantine/core";
 import { useKernelClient } from "@zerodev/waas";
 import { useState, useEffect } from "react";
 import { useModal, usePaymasterRegistered } from "@/hooks";
+import SmartAccountBalanceBlock from "@/components/SmartAccountBalanceBlock";
+import EOABalanceBlock from "@/components/EOABalanceBlock";
+import TransferBlock from "@/components/TransferBlock";
 
 export default function Home() {
   const { openRegisterModal, registerModalOpen } = useModal();
@@ -35,7 +37,9 @@ export default function Home() {
                 className="mt-4"
               />
             </div>
-            <SmartAccountBlock cab={checked} />
+            <SmartAccountBalanceBlock cab={checked} />
+            <TransferBlock cab={checked} />
+            <EOABalanceBlock />
           </>
         )}
       </div>

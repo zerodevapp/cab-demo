@@ -9,6 +9,8 @@ export const zerodevAmoyId = 3001
 export const zerodevSepoliaId = 3000
   // process.env.NEXT_PUBLIC_ZERODEV_SEPOLIA_PROJECT_ID || "";
 
+export const cabPaymasterUrl = "http://127.0.0.1:3003/paymaster/api";
+
 export const supportedChains = [
   {
     id: 11155111,

@@ -9,6 +9,8 @@ import {
 } from "react";
 import ConnectModal from "../Modal/ConnectModal";
 import RegisterModal from "../Modal/RegisterModal";
+import CABModal from "../Modal/CABModal";
+import { Call } from "@/types";
 
 export function useModalStateValue() {
   const [isModalOpen, setModalOpen] = useState(false);
@@ -25,15 +27,19 @@ export function useModalStateValue() {
 interface ModalContextValue {
   connectModalOpen: boolean;
   registerModalOpen: boolean;
+  cabModalOpen: boolean;
   openConnectModal?: ({ version }: { version: KernelVersionType }) => void;
   openRegisterModal?: () => void;
+  openCABModal?: ({ calls, chainId }: { calls: Call[], chainId: number}) => void;
   closeConnectModal?: () => void;
   closeRegisterModal?: () => void;
+  closeCABModal?: () => void;
 }
 
 export const ModalContext = createContext<ModalContextValue>({
   connectModalOpen: false,
   registerModalOpen: false,
+  cabModalOpen: false,
 });
 
 interface ModalProviderProps {
@@ -43,6 +49,8 @@ interface ModalProviderProps {
 export function ModalProvider({ children }: ModalProviderProps) {
   const { kernelAccount } = useKernelClient();
   const [kernelVersion, setKernelVersion] = useState<KernelVersionType>("v3");
+  const [chainId, setChainId] = useState(1);
+  const [calls, setCalls] = useState<Call[]>([]);
 
   const {
     closeModal: closeConnectModal,
@@ -54,6 +62,12 @@ export function ModalProvider({ children }: ModalProviderProps) {
     closeModal: closeRegisterModal,
     isModalOpen: registerModalOpen,
     openModal: openRegisterModal,
+  } = useModalStateValue();
+
+  const {
+    closeModal: closeCABModal,
+    isModalOpen: cabModalOpen,
+    openModal: openCABModal,
   } = useModalStateValue();
 
   useEffect(() => {
@@ -77,6 +91,15 @@ export function ModalProvider({ children }: ModalProviderProps) {
     [openRegisterModal]
   );
 
+  const openCABModalWithCalls = useCallback(
+    ({ calls, chainId } : {calls: Call[], chainId: number}) => {
+      setCalls(calls);
+      setChainId(chainId);
+      openCABModal();
+    },
+    [openCABModal]
+  )
+
   const closeConnectModalWithVersion = useCallback(
     () => {
       closeConnectModal();
@@ -97,18 +120,24 @@ export function ModalProvider({ children }: ModalProviderProps) {
         () => ({
           connectModalOpen,
           registerModalOpen,
+          cabModalOpen: cabModalOpen,
           openConnectModal: openConnectModalWithVersion,
           openRegisterModal: openRegisterModalWithVersion,
+          openCABModal: openCABModalWithCalls,
           closeConnectModal: closeConnectModalWithVersion,
           closeRegisterModal: closeRegisterModalWithVersion,
+          closeCABModal,
         }),
         [
           connectModalOpen,
           registerModalOpen,
+          cabModalOpen,
           openConnectModalWithVersion,
           openRegisterModalWithVersion,
+          openCABModalWithCalls,
           closeConnectModalWithVersion,
           closeRegisterModalWithVersion,
+          closeCABModal,
         ]
       )}
     >
@@ -121,6 +150,12 @@ export function ModalProvider({ children }: ModalProviderProps) {
       <RegisterModal
         onClose={closeRegisterModal}
         open={registerModalOpen}
+      />
+      <CABModal 
+        onClose={closeCABModal}
+        open={cabModalOpen}
+        chainId={chainId}
+        calls={calls}
       />
     </ModalContext.Provider>
   );
