@@ -2,7 +2,8 @@ import { useKernelClient } from "@zerodev/waas";
 import { useCabBalance, useTokenBalance } from "@/hooks";
 import { formatEther } from "viem";
 import { supportedChains } from "@/utils/constants";
-import { Text, Flex, Title } from "@mantine/core";
+import { Text, Card, Badge, Stack, Flex } from "@mantine/core";
+import { BalanceItem } from "@/components/BalanceItem";
 
 export default function SmartBalanceBlock({cab}: {cab: boolean}) {
   const { address: smartAccountAddress } = useKernelClient();
@@ -17,18 +18,37 @@ export default function SmartBalanceBlock({cab}: {cab: boolean}) {
   })
 
   return (
-    <>
-      <Title order={3}>Smart Account</Title>
-      <Text className="mb-4">Address: {smartAccountAddress}</Text>
-      <Flex className="mb-4" direction="column">
-        {isRepaySuccess && <Text>{ `Chain ${supportedChains[0].chain.name} Balance: ${formatEther(tokenBalanceRepay || 0n)} 6TEST`}</Text>}
-        {isSponsorSuccess && <Text>{ `Chain ${supportedChains[1].chain.name} Balance: ${formatEther(tokenBalanceSponsor || 0n)} 6TEST`}</Text>}
+    <Card shadow="sm" padding="lg" radius="md" withBorder>
+      <Flex align="center" mb="md">
+        <Text size="xl" w={300} mr="xs">Smart Account</Text>
+        <Badge color="blue" variant="light">
+          {smartAccountAddress.slice(0, 6)}...{smartAccountAddress.slice(-2)}
+        </Badge>
       </Flex>
-      {cab && balance && (
-        <div className="mb-4">
-          {`CAB Balance: ${formatEther(balance.totalBalance)} 6TEST`}
-        </div>
-      )}
-    </>
-  )
+
+      <Stack gap="sm">
+        {isRepaySuccess && (
+          <BalanceItem
+            chain={supportedChains[0].chain.name}
+            logo={supportedChains[0].logo}
+            balance={formatEther(tokenBalanceRepay || 0n)}
+          />
+        )}
+        {isSponsorSuccess && (
+          <BalanceItem
+            chain={supportedChains[1].chain.name}
+            logo={supportedChains[1].logo}
+            balance={formatEther(tokenBalanceSponsor || 0n)}
+          />
+        )}
+        {cab && balance && (
+          <BalanceItem
+            chain="CAB"
+            balance={formatEther(balance.totalBalance)}
+            highlight
+          />
+        )}
+      </Stack>
+    </Card>
+  );
 }

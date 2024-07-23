@@ -38,6 +38,7 @@ export default function CABUserOp({ calls, chainId }: { calls: Call[], chainId: 
   
   useEffect(() => {
     const initializeKernelClient = async () => {
+      if (!walletClient || !kernelAccount) return;
       const selectedChain = getChain(chainId);
       const publicClient = createPublicClient({
         transport: http(getPublicRpc(chainId)),

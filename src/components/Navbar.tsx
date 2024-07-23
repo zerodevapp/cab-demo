@@ -18,7 +18,7 @@ export default function Navbar() {
       <Flex justify="flex-end" miw={20} gap="sm" w="100%">
         {isConnected && (
           <>
-            <SelectChainButton />
+            {/* <SelectChainButton /> */}
             <ConnectButton />
           </>
         )}

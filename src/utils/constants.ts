@@ -14,6 +14,7 @@ export const cabPaymasterUrl = "http://127.0.0.1:3003/paymaster/api";
 export const supportedChains = [
   {
     id: 11155111,
+    logo: "/icons/eth.svg",
     chain: sepolia,
     projectId: zerodevSepoliaId,
     publicRpc: 'http://localhost:8545',
@@ -21,6 +22,7 @@ export const supportedChains = [
   },
   {
     id: 80002,
+    logo: "/icons/polygon.svg",
     chain: polygonAmoy,
     projectId: zerodevAmoyId,
     publicRpc: 'http://localhost:8546',

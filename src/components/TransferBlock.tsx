@@ -1,27 +1,20 @@
-import { Button } from "@mantine/core";
-import { useSendUserOperation, useKernelClient } from "@zerodev/waas";
+import { Button, Tooltip } from "@mantine/core";
+import { useKernelClient } from "@zerodev/waas";
 import { testErc20Address, supportedChains } from "@/utils/constants";
-import { erc20Abi, parseEther, encodeFunctionData, Address } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
+import { erc20Abi, parseEther, encodeFunctionData } from "viem";
+import { useAccount } from "wagmi";
 import { useMemo} from "react";
-import { useTokenBalance, useCabBalance, useSendUserOperationWithCAB, useModal } from "@/hooks";
+import { useTokenBalance, useCabBalance, useModal } from "@/hooks";
 
 export default function TransferBlock({ cab }: { cab: boolean }) {
   const { address } = useAccount();
-  const { address: smartAccountAddress, kernelAccount } = useKernelClient();
+  const { address: smartAccountAddress } = useKernelClient();
   const { data: tokenBalance, isPending: isTokenBalancePending } = useTokenBalance({
     address: smartAccountAddress,
     chainId: supportedChains[1].id,
   })
   const { data: cabBalance , isPending: isCabBalancePending } = useCabBalance();
-  const { data: walletClient } = useWalletClient();
   const { openCABModal } = useModal();
-
-  // const { write, isPending } = useSendUserOperationWithCAB({
-  //   account: kernelAccount,
-  //   walletClient: walletClient,
-  //   chainId: supportedChains[1].id,
-  // })
   
   const { disabled, loaidng } = useMemo(() => {
     const loaidng = isTokenBalancePending || isCabBalancePending;
@@ -35,40 +28,33 @@ export default function TransferBlock({ cab }: { cab: boolean }) {
   return (
     <>
       <div className="flex flex-row justify-center items-center space-x-4 mt-4">
-        <Button
-          variant="outline"
-          disabled={disabled}
-          loading={loaidng}
-          onClick={() => {
-            if (!address || !openCABModal) return;
+        <Tooltip label="Insufficient balance" disabled={!disabled}>
+          <Button
+            variant="outline"
+            disabled={disabled}
+            loading={loaidng}
+            onClick={() => {
+              if (!address || !openCABModal) return;
 
-            openCABModal({
-              calls: [
-                {
-                  to: testErc20Address,
-                  value: 0n,
-                  data: encodeFunctionData({
-                    abi: erc20Abi,
-                    functionName: "transfer",
-                    args: [address, parseEther("0.01")],
-                  }),
-                }
-              ],
-              chainId: supportedChains[1].id
-            })
-            // write({
-            //   to: testErc20Address,
-            //   value: 0n,
-            //   data: encodeFunctionData({
-            //     abi: erc20Abi,
-            //     functionName: "transfer",
-            //     args: [address, parseEther("0.01")],
-            //   }),
-            // })
-          }}
-        >
-          {disabled ? "Insufficient Balance" : `Transfer 0.01 6TEST to EOA on ${supportedChains[1].chain.name}`}
-        </Button>
+              openCABModal({
+                calls: [
+                  {
+                    to: testErc20Address,
+                    value: 0n,
+                    data: encodeFunctionData({
+                      abi: erc20Abi,
+                      functionName: "transfer",
+                      args: [address, parseEther("0.01")],
+                    }),
+                  }
+                ],
+                chainId: supportedChains[1].id
+              })
+            }}
+          >
+            {`Transfer 0.01 6TEST to EOA on ${supportedChains[1].chain.name}`}
+          </Button>
+        </Tooltip>
       </div>
     </>
   )

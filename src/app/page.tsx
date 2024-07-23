@@ -1,7 +1,7 @@
 "use client";
 import { ConnectButton } from "@/components/Button";
 import Navbar from "@/components/Navbar";
-import { Flex, Switch, Text } from "@mantine/core";
+import { Flex, Switch, Text, Box, Group, Grid, Container } from "@mantine/core";
 import { useKernelClient } from "@zerodev/waas";
 import { useState, useEffect } from "react";
 import { useModal, usePaymasterRegistered } from "@/hooks";
@@ -10,39 +10,54 @@ import EOABalanceBlock from "@/components/EOABalanceBlock";
 import TransferBlock from "@/components/TransferBlock";
 
 export default function Home() {
-  const { openRegisterModal, registerModalOpen } = useModal();
+  const { openRegisterModal } = useModal();
   const { isRegistered, isPending } = usePaymasterRegistered();
   const { isConnected } = useKernelClient();
-  const [checked, setChecked] = useState(true);
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     if (isConnected && !isPending && !isRegistered) openRegisterModal?.();
   }, [isRegistered, isConnected, isPending, openRegisterModal])
 
   return (
-    <Flex direction="column" w="100vw" h="100vh">
+    <Flex direction="column" style={{ minHeight: "100vh", overflow: "auto" }}>
       <Navbar />
       
-      <div className="flex flex-col h-screen justify-center items-center">
-        {!isConnected ? <ConnectButton /> : (
-          <>
-            <div className="flex flex-col justify-center items-center absolute top-20 w-full">
+      {!isConnected ? (
+        <Flex align="center" justify="center" style={{ flex: 1 }}>
+          <ConnectButton />
+        </Flex>
+      ) : (
+        <Box style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          <Box mt="md" mb="xl" style={{ alignSelf: "center" }}>
+            <Group p="center">
               <Text size="sm">CAB Mode</Text>
               <Switch
                 size="lg"
-                onLabel="on"
-                offLabel="off"
+                onLabel="ON"
+                offLabel="OFF"
                 checked={checked}
                 onChange={(event) => setChecked(event.currentTarget.checked)}
-                className="mt-4"
               />
-            </div>
-            <SmartAccountBalanceBlock cab={checked} />
-            <TransferBlock cab={checked} />
-            <EOABalanceBlock />
-          </>
-        )}
-      </div>
+            </Group>
+          </Box>
+          
+          <Container size="md" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <Flex direction="column" gap="md" style={{ flex: 1 }}>
+              <Grid gutter="md">
+                <Grid.Col span={6}>
+                  <SmartAccountBalanceBlock cab={checked} />
+                </Grid.Col>
+                <Grid.Col span={6}>
+                  <EOABalanceBlock />
+                </Grid.Col>
+              </Grid>
+              <TransferBlock cab={checked} />
+            </Flex>
+          </Container>
+          <Box mb="xl" />
+        </Box>
+      )}
     </Flex>
   );
 }

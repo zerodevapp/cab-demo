@@ -10,8 +10,8 @@ import { ColorSchemeScript } from "@mantine/core";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ZeroDev WaaS Demo",
-  description: "ZeroDev WaaS Demo",
+  title: "CAB Demo",
+  description: "demo for chain abstracted balance",
 };
 
 export default function RootLayout({
