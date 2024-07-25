@@ -3,13 +3,11 @@ import { type Address } from 'viem';
 
 export const ZERODEV_APP_ID = process.env.NEXT_PUBLIC_ZERODEV_APP_ID || "";
 
-export const zerodevAmoyId = 3001
-  // process.env.NEXT_PUBLIC_ZERODEV_AMOY_PROJECT_ID || "";
+export const zerodevAmoyId = process.env.NEXT_PUBLIC_ZERODEV_AMOY_PROJECT_ID || "";
 
-export const zerodevSepoliaId = 3000
-  // process.env.NEXT_PUBLIC_ZERODEV_SEPOLIA_PROJECT_ID || "";
+export const zerodevSepoliaId = process.env.NEXT_PUBLIC_ZERODEV_SEPOLIA_PROJECT_ID || "";
 
-export const cabPaymasterUrl = "http://127.0.0.1:3003/paymaster/api";
+export const cabPaymasterUrl = process.env.NEXT_PUBLIC_CAB_PAYMASTER_URL;
 
 export const supportedChains = [
   {
@@ -17,7 +15,7 @@ export const supportedChains = [
     logo: "/icons/eth.svg",
     chain: sepolia,
     projectId: zerodevSepoliaId,
-    publicRpc: 'http://localhost:8545',
+    publicRpc: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL,
     isRepay: true,
   },
   {
@@ -25,7 +23,7 @@ export const supportedChains = [
     logo: "/icons/polygon.svg",
     chain: polygonAmoy,
     projectId: zerodevAmoyId,
-    publicRpc: 'http://localhost:8546',
+    publicRpc: process.env.NEXT_PUBLIC_AMOY_RPC_URL,
     isRepay: false,
   },
 ]
@@ -46,8 +44,7 @@ export const getBundler = (chainId: number) => {
   if (!chain) {
     throw new Error("Unsupported chain");
   }
-  return `http://127.0.0.1:${chain.projectId}`;
-  // return `https://rpc.zerodev.app/api/v2/bundler/${chain.projectId}`;
+  return `https://rpc.zerodev.app/api/v2/bundler/${chain.projectId}`;
 };
 
 export const getPublicRpc = (chainId: number) => {
@@ -63,8 +60,7 @@ export const getPaymaster = (chainId: number) => {
   if (!chain) {
     throw new Error("Unsupported chain");
   }
-  return undefined;
-  // return `https://rpc.zerodev.app/api/v2/paymaster/${chain.projectId}`;
+  return `https://rpc.zerodev.app/api/v2/paymaster/${chain.projectId}`;
 };
 
 export const invoiceManagerAddress: Address = "0xAd3493E8a16DfCd55c9DBFCdeFb934b3D04db698";

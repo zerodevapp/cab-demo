@@ -138,7 +138,12 @@ export function useRegisterPaymaster({
       account: kernelAccount,
       chain: selectedChain.chain,
       entryPoint: kernelAccount.entryPoint,
-      bundlerTransport: http(getBundler(chainId)),
+      bundlerTransport: http(
+        getBundler(chainId),
+        {
+          timeout: 30000,
+        }
+      ),
       middleware: !paymaster ? undefined : {
         sponsorUserOperation: ({ userOperation, entryPoint }) => {
           const paymasterClient = createZeroDevPaymasterClient({
