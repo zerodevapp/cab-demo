@@ -1,4 +1,3 @@
-import { type KernelAccountClient } from "@zerodev/sdk";
 import { GetEntryPointVersion, UserOperation, type EntryPoint } from 'permissionless/types'
 import { useCallback, useState } from "react";
 import { http } from 'viem';
@@ -7,9 +6,9 @@ import { getChain, cabPaymasterUrl } from "@/utils/constants";
 import { createZeroDevCABPaymasterClient } from "@zerodev/cab"
 import { withdrawCall } from "@/utils/withdrawCall"
 import { createInvoiceCall } from "@/utils/createInvoiceCall"
+import { useCabKernelClient } from "@/hooks";
 
 export type UseGetStubDataParams = {
-  kernelClient: KernelAccountClient<EntryPoint> | undefined,
   chainId: number,
   onSuccess?: (
     { userOperation, repayTokensInfo }: 
@@ -22,10 +21,12 @@ export type UseGetStubDataParams = {
 }
 
 export function useGetStubData({
-  kernelClient,
   chainId,
   onSuccess
 }: UseGetStubDataParams) {
+  const { data } = useCabKernelClient({ chainId });
+  const kernelClient = data?.kernelClient;
+  const cabPaymasterClient = data?.cabPaymasterClient;
   const [isPending, setIsPending] = useState(false);
   const [stubData, setStubData] = useState<{
     userOperation: UserOperation<GetEntryPointVersion<EntryPoint>>,
@@ -34,7 +35,7 @@ export function useGetStubData({
 
   const write = useCallback(async ({ calls, repayTokens }: { calls: Call[], repayTokens: RepayToken[] }) => {
     const kernelAccount = kernelClient?.account;
-    if (!kernelAccount || !chainId) return undefined;
+    if (!kernelAccount || !cabPaymasterClient) return undefined;
 
     try {
       setIsPending(true);
@@ -45,12 +46,6 @@ export function useGetStubData({
         }
       })
       console.log("prepareUserOp", userOperation);
-      const cabPaymasterClient = createZeroDevCABPaymasterClient({
-        chain: getChain(chainId).chain,
-        entryPoint: kernelAccount.entryPoint,
-        transport: http(cabPaymasterUrl),
-        account: kernelAccount
-      })
       const sponsorTokenResponse = await cabPaymasterClient.getCabPaymasterSponsorTokens({
         userOperation: userOperation,
         entryPoint:  kernelAccount.entryPoint,
@@ -106,6 +101,7 @@ export function useGetStubData({
             repayTokensInfo: paymasterStubDataRes.repayTokensInfo
         })
       ])
+      
 
       setStubData({
         userOperation,
@@ -117,7 +113,7 @@ export function useGetStubData({
       setIsPending(false);
     }
     
-  }, [kernelClient, chainId, onSuccess]);
+  }, [kernelClient, chainId, onSuccess, cabPaymasterClient]);
 
   return {
     data: stubData,

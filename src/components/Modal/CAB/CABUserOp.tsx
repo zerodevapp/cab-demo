@@ -1,22 +1,8 @@
-import { useAccount, useWalletClient } from "wagmi";
-import { useKernelClient } from "@zerodev/waas";
+import { useAccount } from "wagmi";
 import { RepayTokenInfo, SponsorTokenInfo } from "@/types";
-import { useState, useEffect } from "react";
-import {
-  getChain,
-  getPublicRpc,
-  getBundler,
-  supportedChains,
-  repayTokens,
-} from "@/utils/constants";
-import { createPublicClient, http, formatEther } from 'viem';
-import { signerToEcdsaValidator } from '@zerodev/ecdsa-validator';
-import {
-  type KernelAccountClient,
-  createKernelAccount,
-  createKernelAccountClient,
-} from "@zerodev/sdk";
-import { walletClientToSmartAccountSigner } from 'permissionless'
+import { useState } from "react";
+import { supportedChains, repayTokens } from "@/utils/constants";
+import { formatEther } from 'viem';
 import type { EntryPoint, GetEntryPointVersion, UserOperation } from 'permissionless/types'
 import { useGetData, useModal, useTokenBalance, useCabBalance } from "@/hooks";
 import { Button, Card, Text, Group, Badge, ActionIcon, CopyButton, Tooltip, Flex, ThemeIcon } from "@mantine/core";
@@ -34,15 +20,11 @@ export default function CABUserOp({
   chainId: number,
 }) {
   const { address } = useAccount();
-  const [activeStep, setActiveStep] = useState(0);
-  const [kernelClient, setKernelClient] = useState<KernelAccountClient<EntryPoint>>();
-  const { data: walletClient } = useWalletClient();
-  const { kernelAccount } = useKernelClient();
+  const [activeStep, setActiveStep] = useState(0); 
   const { refetch } = useTokenBalance({ address,  chainId })
   const { refetch: refetchCabBalance } = useCabBalance();
 
   const { data: userOpHash, write: writeData, isPending: isPendingData } = useGetData({
-    kernelClient,
     chainId,
     onSuccess: () => {
       setActiveStep(1);
@@ -52,44 +34,6 @@ export default function CABUserOp({
   })
   const { closeCABModal } = useModal();
   
-  useEffect(() => {
-    const initializeKernelClient = async () => {
-      if (!walletClient || !kernelAccount) return;
-      const selectedChain = getChain(chainId);
-      const publicClient = createPublicClient({
-        transport: http(getPublicRpc(chainId)),
-      });
-      const validator = await signerToEcdsaValidator(publicClient, {
-        signer: walletClientToSmartAccountSigner(walletClient as any),
-        entryPoint: kernelAccount.entryPoint,
-      });
-      const account = await createKernelAccount(publicClient, {
-        plugins: {
-          sudo: validator,
-        },
-        entryPoint: kernelAccount.entryPoint,
-      });
-      const kernelClient = createKernelAccountClient({
-        account: account,
-        chain: selectedChain.chain,
-        entryPoint: account.entryPoint,
-        bundlerTransport: http(getBundler(chainId)),
-        middleware: {
-          sponsorUserOperation: ({ userOperation, entryPoint }) => {
-            return {
-              callGasLimit: 0n,
-              verificationGasLimit: 0n,
-              preVerificationGas: 0n,
-            } as any;
-          },
-        },
-      });
-      setKernelClient(kernelClient);
-    };
-
-    initializeKernelClient();
-  }, [walletClient, kernelAccount, chainId]);
-
   return (
     <Card shadow="sm" padding="lg" radius="md" withBorder>
       <Card.Section p="md">

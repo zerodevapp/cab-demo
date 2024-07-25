@@ -11,3 +11,5 @@ export { useTokenBalance } from "./useTokenBalance";
 export { useGetStubData } from "./useGetStubData";
 
 export { useGetData } from "./useGetData";
+
+export { useCabKernelClient } from "./useCabKernelClient";
