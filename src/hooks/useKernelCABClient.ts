@@ -1,10 +1,10 @@
 import { useWalletClient } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { getChain, getPublicRpc, getBundler, cabPaymasterUrl } from "@/utils/constants";
+import { getChain, getPublicRpc, getBundler, cabPaymasterUrl, getPaymaster } from "@/utils/constants";
 import { walletClientToSmartAccountSigner } from 'permissionless'
 import { http, createPublicClient } from 'viem';
 import { useKernelClient } from "@zerodev/waas";
-import { createKernelAccount, createKernelAccountClient } from "@zerodev/sdk";
+import { createKernelAccount, createKernelAccountClient, createZeroDevPaymasterClient } from "@zerodev/sdk";
 import { signerToEcdsaValidator } from '@zerodev/ecdsa-validator';
 import { createKernelCABClient } from "@zerodev/cab"
 
@@ -41,7 +41,27 @@ export function useKernelCABClient({
         },
         entryPoint: kernelAccount.entryPoint,
       });
-      
+      const paymaster = getPaymaster(chainId);
+      const kernelClientVerifyingPaymaster = createKernelAccountClient({
+        account: account,
+        chain: selectedChain.chain,
+        entryPoint: account.entryPoint,
+        bundlerTransport: http(getBundler(chainId), { timeout: 30000 }),
+        middleware: {
+          sponsorUserOperation: ({ userOperation, entryPoint }) => {
+            const paymasterClient = createZeroDevPaymasterClient({
+              chain: selectedChain.chain,
+              entryPoint: entryPoint,
+              transport: http(paymaster),
+            }); 
+
+            return paymasterClient.sponsorUserOperation({
+              userOperation,
+              entryPoint
+            });
+          }
+        }, 
+      })
       const kernelClient = createKernelAccountClient({
         account: account,
         chain: selectedChain.chain,
@@ -66,7 +86,7 @@ export function useKernelCABClient({
         ),
       })
 
-      return { kernelClient, cabPaymasterClient };
+      return { address: account.address, kernelClient, cabPaymasterClient, kernelClientVerifyingPaymaster };
     },
     enabled: !!walletClient && !!kernelAccount,
     retry: false,

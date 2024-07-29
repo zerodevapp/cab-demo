@@ -1,12 +1,11 @@
 import { Modal } from "@mantine/core";
-import { useKernelClient } from "@zerodev/waas";
 import { useModal, useCABBalance, usePaymasterRegistered, useRegisterPaymaster } from "@/hooks";
 import { supportedChains } from '@/utils/constants';
 import { useState, useEffect, useCallback } from "react";
-import { useWalletClient } from "wagmi";
 import { Button, Card, Text, Group, Transition, Loader, ThemeIcon, Progress, Stack } from "@mantine/core";
 import { IconCircleCheck, IconRocket } from '@tabler/icons-react';
 import Image from "next/image";
+import { notifications } from "@mantine/notifications";
 
 const TOTAL_STEPS = 2;
 
@@ -36,13 +35,9 @@ export default function RegisterModal({
 function RegisterPaymaster() {
   const [activeStep, setActiveStep] = useState(0);
   const { closeRegisterModal } = useModal();
-  const { data: walletClient } = useWalletClient();
-  const { kernelAccount } = useKernelClient();
   const { status, isRepayRegistered, isSponsorRegistered, isPending } = usePaymasterRegistered();
   const { refetch } = useCABBalance();
   const { register: registerRepay, isPending: isRepayPending } = useRegisterPaymaster({
-    account: kernelAccount,
-    walletClient: walletClient,
     chainId: supportedChains[0].id,
     onSuccess: () => {
       setActiveStep(1);
@@ -50,8 +45,6 @@ function RegisterPaymaster() {
     }
   })
   const { register: registerSponsor, isPending: isSponsorPending } = useRegisterPaymaster({
-    account: kernelAccount,
-    walletClient: walletClient,
     chainId: supportedChains[1].id,
     onSuccess: () => {
       setActiveStep(2);
@@ -59,6 +52,7 @@ function RegisterPaymaster() {
   })
 
   const register = useCallback(async () => {
+    try {
       if (!isRepayRegistered) {
         await registerRepay();
         setActiveStep(1);
@@ -67,6 +61,14 @@ function RegisterPaymaster() {
         await registerSponsor();
         setActiveStep(2);
       }
+    } catch (error) {
+      console.log(error);
+      notifications.show({
+        color: "red",
+        message: "Fail to register paymaster",
+      })
+    }
+      
   }, [isRepayRegistered, isSponsorRegistered, registerRepay, registerSponsor])
 
   useEffect(() => {
