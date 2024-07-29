@@ -1,5 +1,5 @@
 import { useKernelClient } from "@zerodev/waas";
-import { useCABBalance, useTokenBalance } from "@/hooks";
+import { useCabBalance, useTokenBalance } from "@/hooks";
 import { formatEther } from "viem";
 import { supportedChains } from "@/utils/constants";
 import { Text, Card, Badge, Stack, Flex } from "@mantine/core";
@@ -7,7 +7,7 @@ import { BalanceItem } from "@/components/BalanceItem";
 
 export default function SmartBalanceBlock({cab}: {cab: boolean}) {
   const { address: smartAccountAddress } = useKernelClient();
-  const { data: balance } = useCABBalance();
+  const { data: balance } = useCabBalance();
   const { data: tokenBalanceRepay, isSuccess: isRepaySuccess } = useTokenBalance({
     address: smartAccountAddress,
     chainId: supportedChains[0].id,

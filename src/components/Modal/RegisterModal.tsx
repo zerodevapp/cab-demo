@@ -1,5 +1,5 @@
 import { Modal } from "@mantine/core";
-import { useModal, useCABBalance, usePaymasterRegistered, useRegisterPaymaster } from "@/hooks";
+import { useModal, useCabBalance, usePaymasterRegistered, useRegisterPaymaster } from "@/hooks";
 import { supportedChains } from '@/utils/constants';
 import { useState, useEffect, useCallback } from "react";
 import { Button, Card, Text, Group, Transition, Loader, ThemeIcon, Progress, Stack } from "@mantine/core";
@@ -36,7 +36,7 @@ function RegisterPaymaster() {
   const [activeStep, setActiveStep] = useState(0);
   const { closeRegisterModal } = useModal();
   const { status, isRepayRegistered, isSponsorRegistered, isPending } = usePaymasterRegistered();
-  const { refetch } = useCABBalance();
+  const { refetch } = useCabBalance();
   const { register: registerRepay, isPending: isRepayPending } = useRegisterPaymaster({
     chainId: supportedChains[0].id,
     onSuccess: () => {

@@ -1,7 +1,7 @@
 "use client";
 import { Flex } from "@mantine/core";
 import { useKernelClient } from "@zerodev/waas";
-import { ConnectButton } from "./Button";
+import { ConnectButton, DepositButton } from "./Button";
 
 export default function Navbar() {
   const { isConnected } = useKernelClient();
@@ -16,7 +16,12 @@ export default function Navbar() {
       align="center"
     >
       <Flex justify="flex-end" miw={20} gap="sm" w="100%">
-        {isConnected && <ConnectButton />}
+        {isConnected && (
+          <>
+            <DepositButton />  
+            <ConnectButton />
+          </>
+        )}
       </Flex>
     </Flex>
   );

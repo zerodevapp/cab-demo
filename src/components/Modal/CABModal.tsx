@@ -5,7 +5,7 @@ import { useState } from "react";
 import { supportedChains, repayTokens } from "@/utils/constants";
 import { formatEther } from 'viem';
 import type { EntryPoint, GetEntryPointVersion, UserOperation } from 'permissionless/types'
-import { useSendUserOperation, useModal, useTokenBalance, useCABBalance } from "@/hooks";
+import { useSendUserOperation, useModal, useTokenBalance, useCabBalance } from "@/hooks";
 import { Button, Card, Text, Group, Badge, ActionIcon, CopyButton, Tooltip, Flex, ThemeIcon } from "@mantine/core";
 import { IconCopy, IconCheck } from '@tabler/icons-react';
 
@@ -61,7 +61,7 @@ function CABUserOperation({
   const { address } = useAccount();
   const [activeStep, setActiveStep] = useState(0); 
   const { refetch } = useTokenBalance({ address,  chainId })
-  const { refetch: refetchCabBalance } = useCABBalance();
+  const { refetch: refetchCabBalance } = useCabBalance();
 
   const { data: userOpHash, write: writeData, isPending: isPendingData } = useSendUserOperation({
     chainId,

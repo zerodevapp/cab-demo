@@ -4,7 +4,7 @@ export { usePaymasterRegistered } from "./usePaymasterRegistered";
 
 export { useRegisterPaymaster } from './useRegisterPaymaster';
 
-export { useCABBalance } from "./useCABBalance";
+export { useCabBalance } from "./useCabBalance";
 
 export { useTokenBalance } from "./useTokenBalance";
 

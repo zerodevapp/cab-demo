@@ -4,7 +4,7 @@ import { testErc20Address, supportedChains, repayTokens } from "@/utils/constant
 import { erc20Abi, parseEther, encodeFunctionData } from "viem";
 import { useAccount } from "wagmi";
 import { useMemo } from "react";
-import { useTokenBalance, useCABBalance, useModal, usePrepareUserOperation } from "@/hooks";
+import { useTokenBalance, useCabBalance, useModal, usePrepareUserOperation } from "@/hooks";
 
 export default function TransferBlock({ cab }: { cab: boolean }) {
   const chainId = supportedChains[1].id;
@@ -14,7 +14,7 @@ export default function TransferBlock({ cab }: { cab: boolean }) {
     address: smartAccountAddress,
     chainId: chainId,
   })
-  const { data: cabBalance , isPending: isCabBalancePending } = useCABBalance();
+  const { data: cabBalance , isPending: isCabBalancePending } = useCabBalance();
   const { openCABModal } = useModal();
   const { write, isPending } = usePrepareUserOperation({
     chainId,

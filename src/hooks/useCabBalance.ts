@@ -3,7 +3,7 @@ import { useKernelClient } from "@zerodev/waas";
 import { useQuery } from '@tanstack/react-query';
 import { useKernelCABClient } from "./useKernelCABClient";
 
-export function useCABBalance() {
+export function useCabBalance() {
   const { address, kernelAccount } = useKernelClient();
   const { data } = useKernelCABClient({ chainId: supportedChains[1].id });
 
