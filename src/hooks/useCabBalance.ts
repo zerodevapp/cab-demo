@@ -1,32 +1,23 @@
-import { supportedChains, cabPaymasterUrl, repayTokens, getChain } from "@/utils/constants";
-import { http } from "viem";
+import { supportedChains, repayTokens } from "@/utils/constants";
 import { useKernelClient } from "@zerodev/waas";
-import { createZeroDevCABPaymasterClient } from "@zerodev/cab"
 import { useQuery } from '@tanstack/react-query';
+import { useKernelCABClient } from "./useKernelCABClient";
 
-export function useCabBalance() {
+export function useCABBalance() {
   const { address, kernelAccount } = useKernelClient();
+  const { data } = useKernelCABClient({ chainId: supportedChains[1].id });
 
   return useQuery({
     queryKey: ['cabBalance', address],
     queryFn: async () => {
-      if (!address || !kernelAccount) {
+      const cabPaymasterClient = data?.cabPaymasterClient;
+      if (!address || !kernelAccount || !cabPaymasterClient) {
         throw new Error("Address or kernel account not available");
       }
-
-      const cabPaymasterClient = createZeroDevCABPaymasterClient({
-        chain: getChain(supportedChains[1].id).chain,
-        entryPoint: kernelAccount.entryPoint,
-        transport: http(cabPaymasterUrl),
-        account: kernelAccount
-      });
-
-      const balance = await cabPaymasterClient.getCabBalance({
+      return await cabPaymasterClient.getCabBalance({
         address,
         repayTokens
       });
-
-      return balance;
     },
     enabled: !!address && !!kernelAccount,
   });

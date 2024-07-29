@@ -4,12 +4,12 @@ export { usePaymasterRegistered } from "./usePaymasterRegistered";
 
 export { useRegisterPaymaster } from './useRegisterPaymaster';
 
-export { useCabBalance } from "./useCabBalance";
+export { useCABBalance } from "./useCABBalance";
 
 export { useTokenBalance } from "./useTokenBalance";
 
-export { useGetStubData } from "./useGetStubData";
+export { usePrepareUserOperation } from "./usePrepareUserOperation";
 
-export { useGetData } from "./useGetData";
+export { useSendUserOperation } from "./useSendUserOperation";
 
-export { useCabKernelClient } from "./useCabKernelClient";
+export { useKernelCABClient } from "./useKernelCABClient";

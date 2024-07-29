@@ -6,15 +6,15 @@ import { http, createPublicClient } from 'viem';
 import { useKernelClient } from "@zerodev/waas";
 import { createKernelAccount, createKernelAccountClient } from "@zerodev/sdk";
 import { signerToEcdsaValidator } from '@zerodev/ecdsa-validator';
-import { createZeroDevCABPaymasterClient } from "@zerodev/cab"
+import { createKernelCABClient } from "@zerodev/cab"
 
-export type UseCabKernelClientParams = {
+export type UseKernelCABClientParams = {
   chainId: number,
 }
 
-export function useCabKernelClient({
+export function useKernelCABClient({
   chainId
-}: UseCabKernelClientParams) {
+}: UseKernelCABClientParams) {
   const { kernelAccount } = useKernelClient();
   const { data: walletClient } = useWalletClient();
 
@@ -57,16 +57,13 @@ export function useCabKernelClient({
           },
         },
       });
-      const cabPaymasterClient = createZeroDevCABPaymasterClient({
-        chain: getChain(chainId).chain,
-        entryPoint: kernelAccount.entryPoint,
+      const cabPaymasterClient = createKernelCABClient(kernelClient, {
         transport: http(
           cabPaymasterUrl,
           {
             timeout: 30000
           }
         ),
-        account: kernelAccount,
       })
 
       return { kernelClient, cabPaymasterClient };
