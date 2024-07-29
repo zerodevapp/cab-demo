@@ -1,3 +1,3 @@
 export { ConnectButton } from "./ConnectButton";
 
-export { SelectChainButton } from "./SelectChainButton";
+export { DepositButton } from "./DepositButton";

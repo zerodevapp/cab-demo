@@ -2,7 +2,7 @@ import { useKernelClient } from "@zerodev/waas";
 import { useCabBalance, useTokenBalance } from "@/hooks";
 import { formatEther } from "viem";
 import { supportedChains } from "@/utils/constants";
-import { Text, Card, Badge, Stack, Flex, Loader } from "@mantine/core";
+import { Text, Card, Badge, Stack, Flex } from "@mantine/core";
 import { BalanceItem } from "@/components/BalanceItem";
 
 export default function SmartBalanceBlock({cab}: {cab: boolean}) {

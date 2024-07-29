@@ -8,6 +8,8 @@ export { useCabBalance } from "./useCabBalance";
 
 export { useTokenBalance } from "./useTokenBalance";
 
-export { useGetStubData } from "./useGetStubData";
+export { usePrepareUserOperation } from "./usePrepareUserOperation";
 
-export { useGetData } from "./useGetData";
+export { useSendUserOperation } from "./useSendUserOperation";
+
+export { useKernelCABClient } from "./useKernelCABClient";

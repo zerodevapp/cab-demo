@@ -2,7 +2,7 @@ import { useReadContract } from "wagmi";
 import { cabPaymasterAddress, invoiceManagerAddress, supportedChains } from "@/utils/constants";
 import { useKernelClient } from "@zerodev/waas";
 import { invoiceManagerAbi } from "@/abis/invoiceManagerAbi";
-import { isAddressEqual, zeroAddress } from "viem";
+import { isAddressEqual } from "viem";
 import { useMemo } from "react";
 
 export function usePaymasterRegistered() {
