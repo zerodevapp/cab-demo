@@ -64,7 +64,7 @@ export default function TransferBlock({ cab }: { cab: boolean }) {
               });
             }}
           >
-            {`Transfer 0.01 6TEST to EOA on ${supportedChains[1].chain.name}`}
+            {`Transfer 0.01 USDC to EOA on ${supportedChains[1].chain.name}`}
           </Button>
         </Tooltip>
       </div>

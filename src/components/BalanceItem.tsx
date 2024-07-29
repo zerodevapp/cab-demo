@@ -24,7 +24,7 @@ export function BalanceItem({ chain, logo, balance, highlight = false }: {
           {chain} Balance
         </Text>
         <Text w={700} size="lg">
-          {balance} {chain === "CAB" ? "USD" : "6TEST"}
+          {`${balance} USDC`}
         </Text>
       </Group>
     </Box>
