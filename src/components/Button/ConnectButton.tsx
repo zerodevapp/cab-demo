@@ -1,16 +1,10 @@
 import { Button } from "@mantine/core";
-import {
-  useDisconnectKernelClient,
-  useKernelClient,
-} from "@zerodev/waas";
-import { useConnect } from "wagmi";
-import { useCreateKernelClientEOA } from "@zerodev/waas";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
 
 export function ConnectButton() {
-  const { isConnected } = useKernelClient();
-  const { disconnect } = useDisconnectKernelClient();
-  const { connectors } = useConnect();
-  const { connect, isPending } = useCreateKernelClientEOA({ version: "v3" });
+  const { connectors, connect, isPending } = useConnect();
+  const { disconnect } = useDisconnect();
+  const { isConnected } = useAccount();
 
   return (
     <Button

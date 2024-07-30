@@ -1,11 +1,11 @@
 "use client";
 import { Flex } from "@mantine/core";
-import { useKernelClient } from "@zerodev/waas";
 import { ConnectButton, DepositButton } from "./Button";
+import { useAccount } from "wagmi"
 
 export default function Navbar() {
-  const { isConnected } = useKernelClient();
-
+  const { isConnected } = useAccount();
+  
   return (
     <Flex
       w="100vw"

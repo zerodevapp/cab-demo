@@ -2,7 +2,7 @@
 import { ConnectButton } from "@/components/Button";
 import Navbar from "@/components/Navbar";
 import { Flex, Switch, Text, Box, Group, Grid, Container } from "@mantine/core";
-import { useKernelClient } from "@zerodev/waas";
+import { useAccount } from "wagmi";
 import { useState, useEffect } from "react";
 import { useModal, usePaymasterRegistered } from "@/hooks";
 import SmartAccountBalanceBlock from "@/components/SmartAccountBalanceBlock";
@@ -10,14 +10,19 @@ import EOABalanceBlock from "@/components/EOABalanceBlock";
 import TransferBlock from "@/components/TransferBlock";
 
 export default function Home() {
+  const [hydration, setHydration] = useState(false);
   const { openRegisterModal } = useModal();
-  const { isRegistered, isPending } = usePaymasterRegistered();
-  const { isConnected } = useKernelClient();
+  const { isRegistered } = usePaymasterRegistered();
+  const { isConnected } = useAccount();
   const [checked, setChecked] = useState(false);
 
+  useEffect(() => setHydration(true), []);
+
   useEffect(() => {
-    if (isConnected && !isPending && !isRegistered) openRegisterModal?.();
-  }, [isRegistered, isConnected, isPending, openRegisterModal])
+    if (isConnected && isRegistered === false) openRegisterModal?.();
+  }, [isRegistered, isConnected, openRegisterModal])
+
+  if (!hydration) return null;
 
   return (
     <Flex direction="column" style={{ minHeight: "100vh", overflow: "auto" }}>
