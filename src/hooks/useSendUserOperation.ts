@@ -1,6 +1,6 @@
 import { type UserOperation, type GetEntryPointVersion, type EntryPoint } from "permissionless/types"
 import { RepayToken } from "@/types";
-import { getChain, getBundler } from "@/utils/constants";
+import { getChain, getBundler, supportedChains } from "@/utils/constants";
 import { http, type Hex } from 'viem';
 import { createBundlerClient } from "permissionless";
 import { useKernelCABClient, useTokenBalance } from "@/hooks";
@@ -40,13 +40,15 @@ export function useSendUserOperation({
       const bundlerClient = createBundlerClient({
         chain: getChain(chainId).chain,
         entryPoint: kernelAccount.entryPoint,
-        transport: http(getBundler(chainId), { timeout: 30000 }),
+        transport: http(getBundler(chainId), { timeout: 60000 }),
       });
 
-      await bundlerClient.waitForUserOperationReceipt({
-        hash: userOpHash,
-      });
-
+      if (chainId !== supportedChains[0].id) {
+        await bundlerClient.waitForUserOperationReceipt({
+          hash: userOpHash,
+        });
+      }
+      
       console.log("userOpHash", userOpHash);
       return userOpHash;
     },
