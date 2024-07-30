@@ -1,4 +1,3 @@
-import { type UserOperation, type GetEntryPointVersion, type EntryPoint } from "permissionless/types"
 import { RepayToken } from "@/types";
 import { getChain, getBundler, supportedChains } from "@/utils/constants";
 import { http, type Hex } from 'viem';
@@ -26,7 +25,7 @@ export function useSendUserOperation({
 
   const mutation = useMutation({
     mutationFn: async ({ userOperation, repayTokens }: { 
-      userOperation: UserOperation<GetEntryPointVersion<EntryPoint>>,
+      userOperation: any;
       repayTokens: RepayToken[] 
     }) => {
       const kernelAccount = kernelClient?.account;
@@ -38,7 +37,7 @@ export function useSendUserOperation({
       }
 
       const userOpHash = await cabPaymasterClient.sendUserOperationCAB({
-        userOperation: userOperation as any,
+        userOperation: userOperation,
         repayTokens,
       });
 
