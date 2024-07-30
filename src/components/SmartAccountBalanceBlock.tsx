@@ -1,11 +1,11 @@
-import { useCabBalance, useTokenBalance, useKernelCABClient } from "@/hooks";
+import { useCabBalance, useTokenBalance, useCABClient } from "@/hooks";
 import { formatEther } from "viem";
 import { supportedChains } from "@/utils/constants";
 import { Text, Card, Badge, Stack, Flex } from "@mantine/core";
 import { BalanceItem } from "@/components/BalanceItem";
 
 export default function SmartBalanceBlock({cab}: {cab: boolean}) {
-  const { data } = useKernelCABClient({ chainId: supportedChains[0].id });
+  const { data } = useCABClient({ chainId: supportedChains[0].id });
   const smartAccountAddress = data?.address ?? '0x';
   
   const { data: balance } = useCabBalance();

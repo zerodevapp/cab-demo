@@ -2,7 +2,7 @@ import { RepayToken } from "@/types";
 import { getChain, getBundler, supportedChains } from "@/utils/constants";
 import { http, type Hex } from 'viem';
 import { createBundlerClient } from "permissionless";
-import { useKernelCABClient, useTokenBalance } from "@/hooks";
+import { useCABClient, useTokenBalance } from "@/hooks";
 import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { useMutation } from '@tanstack/react-query';
 
@@ -17,9 +17,9 @@ export function useSendUserOperation({
 }: UseSendUserOperationParams) {
   const selectedChain = useChainId();
   const { switchChainAsync } = useSwitchChain();
-  const { data } = useKernelCABClient({ chainId });
-  const kernelClient = data?.kernelClient;
-  const cabPaymasterClient = data?.cabPaymasterClient;
+  const { data } = useCABClient({ chainId });
+  const smartAccountClient = data?.smartAccountClient;
+  const cabClient = data?.cabClient;
   const { address } = useAccount();
   const { refetch } = useTokenBalance({ chainId, address: address });
 
@@ -28,22 +28,22 @@ export function useSendUserOperation({
       userOperation: any;
       repayTokens: RepayToken[] 
     }) => {
-      const kernelAccount = kernelClient?.account;
-      if (!kernelAccount || !cabPaymasterClient) {
-        throw new Error('KernelAccount or CABPaymasterClient is not available');
+      const smartAccount = smartAccountClient?.account;
+      if (!smartAccount || !cabClient) {
+        throw new Error('smartAccount or CABClient is not available');
       }
       if (selectedChain !== chainId) {
         await switchChainAsync?.({ chainId });
       }
 
-      const userOpHash = await cabPaymasterClient.sendUserOperationCAB({
+      const userOpHash = await cabClient.sendUserOperationCAB({
         userOperation: userOperation,
         repayTokens,
       });
 
       const bundlerClient = createBundlerClient({
         chain: getChain(chainId).chain,
-        entryPoint: kernelAccount.entryPoint,
+        entryPoint: smartAccount.entryPoint,
         transport: http(getBundler(chainId), { timeout: 60000 }),
       });
 

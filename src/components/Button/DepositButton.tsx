@@ -1,6 +1,6 @@
 import { Button } from "@mantine/core";
 import { supportedChains, testErc20Address, vaultManagerAddress, testErc20VaultAddress } from "@/utils/constants";
-import { useKernelCABClient, useCabBalance } from "@/hooks";
+import { useCABClient, useCabBalance } from "@/hooks";
 import { useMemo, useCallback, useState } from "react";
 import { parseEther, encodeFunctionData, parseAbi, erc20Abi } from "viem";
 import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
@@ -10,10 +10,10 @@ export function DepositButton() {
   const [isDepositPending, setIsDepositPending] = useState(false);
   const chainId = supportedChains[0].id;
   const { refetch } = useCabBalance();
-  const { data, isPending } = useKernelCABClient({ chainId });
-  const kernelClient = data?.kernelClientVerifyingPaymaster;
+  const { data, isPending } = useCABClient({ chainId });
+  const smartAccountClient = data?.smartAccountClientVerifyingPaymaster;
   const accountAddress = data?.address;
-  const disabled = isPending || !kernelClient || !accountAddress || !refetch;
+  const disabled = isPending || !smartAccountClient || !accountAddress || !refetch;
 
   const txs = useMemo(() => {
     if (!accountAddress) return [];
@@ -51,11 +51,11 @@ export function DepositButton() {
   }, [accountAddress]);
 
   const deposit = useCallback(async () => {
-    if (!kernelClient || !refetch) return;
+    if (!smartAccountClient || !refetch) return;
     try {
       setIsDepositPending(true);
-      await kernelClient.sendTransactions({
-        account: kernelClient.account,
+      await smartAccountClient.sendTransactions({
+        account: smartAccountClient.account,
         transactions: txs
       });
       refetch();
@@ -67,7 +67,7 @@ export function DepositButton() {
     } finally {
       setIsDepositPending(false);
     }
-  }, [kernelClient, txs, refetch]);
+  }, [smartAccountClient, txs, refetch]);
 
   return (
     <Button
