@@ -29,11 +29,12 @@ export function usePrepareUserOperation({
         throw new Error('KernelAccount or CABPaymasterClient is not available');
       }
 
-      const prepareUserOpFromCAB = await cabPaymasterClient.prepareUserOperationCABRequest({
-        account: kernelAccount,
-        userOperation: {
-          callData: await kernelAccount.encodeCallData(calls)
-        },
+      const prepareUserOpFromCAB = await cabPaymasterClient.prepareUserOperationRequestCAB({
+        account: cabPaymasterClient.account,
+        transactions: calls,
+        // userOperation: {
+        //   callData: await kernelAccount.encodeCallData(calls)
+        // },
         repayTokens
       });
 

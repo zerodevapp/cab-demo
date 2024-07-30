@@ -47,6 +47,14 @@ export const getBundler = (chainId: number) => {
   return `https://rpc.zerodev.app/api/v2/bundler/${chain.projectId}?provider=PIMLICO`;
 };
 
+export const getPimlicoRpc = (chainId: number) => {
+  const chain = supportedChains.find(chain => chain.id === chainId);
+  if (!chain) {
+    throw new Error("Unsupported chain");
+  }
+  return `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${process.env.NEXT_PUBLIC_PIMLICO_API_KEY}`;
+}
+
 export const getPublicRpc = (chainId: number) => {
   const chain = supportedChains.find(chain => chain.id === chainId);
   if (!chain) {

@@ -1,13 +1,13 @@
 import { Loader, Title, Flex } from "@mantine/core";
-import { useKernelClient } from "@zerodev/waas";
 import { supportedChains } from "@/utils/constants";
 import { useMemo } from "react";
-import { useTokenBalance, useCabBalance } from "@/hooks";
+import { useTokenBalance, useCabBalance, useKernelCABClient } from "@/hooks";
 import { TransferButton } from "@/components/Button";
 
 export default function TransferBlock({ cab }: { cab: boolean }) {
   const chainId = supportedChains[1].id;
-  const { address: smartAccountAddress } = useKernelClient();
+  const { data } = useKernelCABClient({ chainId: chainId });
+  const smartAccountAddress = data?.address;
   const { isPending: isTokenBalancePending } = useTokenBalance({
     address: smartAccountAddress,
     chainId: chainId,

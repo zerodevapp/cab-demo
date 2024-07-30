@@ -2,14 +2,14 @@ import { Button, Tooltip } from "@mantine/core";
 import { repayTokens, supportedChains, testErc20Address } from "@/utils/constants";
 import { erc20Abi, parseEther, encodeFunctionData } from "viem";
 import { useAccount } from "wagmi";
-import { useKernelClient } from "@zerodev/waas";
-import { useTokenBalance, useCabBalance, useModal, usePrepareUserOperation } from "@/hooks";
+import { useTokenBalance, useCabBalance, useModal, usePrepareUserOperation, useKernelCABClient } from "@/hooks";
 import { useMemo } from "react";
 
 export function TransferButton({ chainId, cab }: { chainId: number, cab: boolean }) {
   const chain = (supportedChains.find(chain => chain.id === chainId) ?? supportedChains[0]).chain;
   const { address } = useAccount();
-  const { address: smartAccountAddress } = useKernelClient();
+  const { data } = useKernelCABClient({ chainId });
+  const smartAccountAddress = data?.address;
   const { data: tokenBalance } = useTokenBalance({
     address: smartAccountAddress,
     chainId: chainId,
