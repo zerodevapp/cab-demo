@@ -7,7 +7,11 @@ import { BalanceItem } from "@/components/BalanceItem";
 
 export default function EOABalanceBlock() {
   const { address } = useAccount();
-  const { data: balance } = useTokenBalance({
+  const { data: balanceRepay } = useTokenBalance({
+    address: address,
+    chainId: supportedChains[0].id,
+  })
+  const { data: balanceSponsor } = useTokenBalance({
     address: address,
     chainId: supportedChains[1].id,
   })
@@ -21,9 +25,14 @@ export default function EOABalanceBlock() {
         </Badge>
       </Flex>
       <BalanceItem
+        chain={supportedChains[0].chain.name}
+        logo={supportedChains[0].logo}
+        balance={formatEther(balanceRepay || 0n)}
+      />
+      <BalanceItem
         chain={supportedChains[1].chain.name}
         logo={supportedChains[1].logo}
-        balance={formatEther(balance || 0n)}
+        balance={formatEther(balanceSponsor || 0n)}
       />
     </Card>
   )

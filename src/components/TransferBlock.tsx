@@ -1,73 +1,34 @@
-import { Button, Tooltip } from "@mantine/core";
+import { Loader, Title, Flex } from "@mantine/core";
 import { useKernelClient } from "@zerodev/waas";
-import { testErc20Address, supportedChains, repayTokens } from "@/utils/constants";
-import { erc20Abi, parseEther, encodeFunctionData } from "viem";
-import { useAccount } from "wagmi";
+import { supportedChains } from "@/utils/constants";
 import { useMemo } from "react";
-import { useTokenBalance, useCabBalance, useModal, usePrepareUserOperation } from "@/hooks";
+import { useTokenBalance, useCabBalance } from "@/hooks";
+import { TransferButton } from "@/components/Button";
 
 export default function TransferBlock({ cab }: { cab: boolean }) {
   const chainId = supportedChains[1].id;
-  const { address } = useAccount();
   const { address: smartAccountAddress } = useKernelClient();
-  const { data: tokenBalance, isPending: isTokenBalancePending } = useTokenBalance({
+  const { isPending: isTokenBalancePending } = useTokenBalance({
     address: smartAccountAddress,
     chainId: chainId,
   })
-  const { data: cabBalance , isPending: isCabBalancePending } = useCabBalance();
-  const { openCABModal } = useModal();
-  const { write, isPending } = usePrepareUserOperation({
-    chainId,
-    onSuccess: ({ userOperation, repayTokensInfo, sponsorTokensInfo }) => {
-      openCABModal?.({
-        chainId,
-        sponsorTokensInfo,
-        repayTokensInfo,
-        userOperation
-      })
-    }
-  })
-  
-  const { disabled, loaidng } = useMemo(() => {
-    const loaidng = cab ? isCabBalancePending : isTokenBalancePending;
-    const disabled = cab ? (cabBalance ?? 0n) < parseEther("0.01") : (tokenBalance ?? 0n) < parseEther("0.01");
-    return {
-      disabled,
-      loaidng
-    }
-  }, [tokenBalance, cabBalance, cab, isTokenBalancePending, isCabBalancePending]);
+  const { isPending: isCabBalancePending } = useCabBalance();
+
+  const loading = useMemo(() => {
+    return cab ? isCabBalancePending : isTokenBalancePending;
+  }, [cab, isTokenBalancePending, isCabBalancePending]);
 
   return (
-    <>
-      <div className="flex flex-row justify-center items-center space-x-4 mt-4">
-        <Tooltip label="Insufficient balance" disabled={!disabled}>
-          <Button
-            variant="outline"
-            disabled={disabled}
-            loading={loaidng || isPending || !address}
-            onClick={() => {
-              if (!address) return;
-
-              write({
-                calls: [
-                  {
-                    to: testErc20Address,
-                    value: 0n,
-                    data: encodeFunctionData({
-                      abi: erc20Abi,
-                      functionName: "transfer",
-                      args: [address, parseEther("0.01")],
-                    }),
-                  } 
-                ],
-                repayTokens
-              });
-            }}
-          >
-            {`Transfer 0.01 USDC to EOA on ${supportedChains[1].chain.name}`}
-          </Button>
-        </Tooltip>
-      </div>
-    </>
+    <Flex direction="column" justify="center" align="center">
+      {loading ? <Loader /> : (
+        <>
+          <Title order={5}>Transfer 0.01 USDC to EOA</Title>
+          <Flex direction="row" gap="md">
+            <TransferButton chainId={supportedChains[0].id} cab={cab} />
+            <TransferButton chainId={supportedChains[1].id} cab={cab} />  
+          </Flex>  
+        </>
+      )}
+    </Flex>     
   )
 }
