@@ -40,7 +40,7 @@ export function useSendUserOperation({
       const bundlerClient = createBundlerClient({
         chain: getChain(chainId).chain,
         entryPoint: kernelAccount.entryPoint,
-        transport: http(getBundler(chainId)),
+        transport: http(getBundler(chainId), { timeout: 30000 }),
       });
 
       await bundlerClient.waitForUserOperationReceipt({

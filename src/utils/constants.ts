@@ -44,7 +44,7 @@ export const getBundler = (chainId: number) => {
   if (!chain) {
     throw new Error("Unsupported chain");
   }
-  return `https://rpc.zerodev.app/api/v2/bundler/${chain.projectId}`;
+  return `https://rpc.zerodev.app/api/v2/bundler/${chain.projectId}?provider=PIMLICO`;
 };
 
 export const getPublicRpc = (chainId: number) => {
