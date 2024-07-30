@@ -9,6 +9,11 @@ export const zerodevSepoliaId = process.env.NEXT_PUBLIC_ZERODEV_SEPOLIA_PROJECT_
 
 export const cabPaymasterUrl = process.env.NEXT_PUBLIC_CAB_PAYMASTER_URL;
 
+export const supportedAccounts = [
+  "kernel",
+  "safe",
+]
+
 export const supportedChains = [
   {
     id: 11155111,

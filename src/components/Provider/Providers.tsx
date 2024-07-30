@@ -8,6 +8,7 @@ import { ReactNode } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { sepolia, polygonAmoy } from "wagmi/chains";
 import { ModalProvider } from "./ModalProvider";
+import { AccountProvider } from "./AccountProvider";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const config = createConfig({
@@ -24,7 +25,10 @@ export default function Providers({ children }: { children: ReactNode }) {
       <Notifications />
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
+          <AccountProvider>
           <ModalProvider>{children}</ModalProvider>
+
+            </AccountProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </MantineProvider>

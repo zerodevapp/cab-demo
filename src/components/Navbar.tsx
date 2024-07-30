@@ -2,6 +2,7 @@
 import { Flex } from "@mantine/core";
 import { ConnectButton, DepositButton } from "./Button";
 import { useAccount } from "wagmi"
+import { SelectAccountButton } from "./Button";
 
 export default function Navbar() {
   const { isConnected } = useAccount();
@@ -18,6 +19,7 @@ export default function Navbar() {
       <Flex justify="flex-end" miw={20} gap="sm" w="100%">
         {isConnected && (
           <>
+            <SelectAccountButton />
             <DepositButton />  
             <ConnectButton />
           </>
