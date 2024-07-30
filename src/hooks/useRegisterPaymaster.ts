@@ -18,7 +18,7 @@ import {
 import { useChainId, useSwitchChain } from "wagmi";
 import { invoiceManagerAbi } from "@/abis/invoiceManagerAbi";
 import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
-import { useKernelCABClient } from "./useKernelCABClient";
+import { useCABClient } from "./useCABClient";
 
 export type UseRegisterPaymasterParams = {  
   chainId: number;
@@ -34,8 +34,8 @@ export function useRegisterPaymaster({
   const selectedChain = getChain(chainId);
   const isRepay = selectedChain.isRepay;
 
-  const { data } = useKernelCABClient({ chainId });
-  const kernelClient = data?.kernelClientVerifyingPaymaster;
+  const { data } = useCABClient({ chainId });
+  const smartAccountClient = data?.smartAccountClientVerifyingPaymaster;
   const accountAddress = data?.address;
 
   const txs = useMemo(() => {
@@ -92,13 +92,13 @@ export function useRegisterPaymaster({
 
   const mutation = useMutation<Hex, Error, void>({
     mutationFn: async () => {
-      if (!kernelClient || txs.length === 0) {
+      if (!smartAccountClient || txs.length === 0) {
         throw new Error("Client or transactions not available");
       }
       if (connectedChainId !== chainId) {
         await switchChainAsync?.({ chainId });
       }
-      return await kernelClient.sendTransactions({ transactions: txs });
+      return await smartAccountClient.sendTransactions({ transactions: txs });
     },
     onSuccess: (txHash) => {
       console.log("txHash", txHash);
@@ -112,6 +112,6 @@ export function useRegisterPaymaster({
   return {
     hash: mutation.data,
     register: mutation.mutateAsync,
-    isPending: mutation.isPending || !kernelClient || txs.length === 0,
+    isPending: mutation.isPending || !smartAccountClient || txs.length === 0,
   };
 }

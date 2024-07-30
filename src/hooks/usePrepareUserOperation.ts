@@ -1,6 +1,6 @@
 import { GetEntryPointVersion, UserOperation, type EntryPoint } from 'permissionless/types'
 import { Call, RepayToken, RepayTokenInfo, SponsorTokenInfo } from "@/types";
-import { useKernelCABClient } from "@/hooks";
+import { useCABClient } from "@/hooks";
 import { useMutation } from '@tanstack/react-query';
 
 export type UsePrepareUserOperationParams = {
@@ -19,22 +19,19 @@ export function usePrepareUserOperation({
   chainId,
   onSuccess
 }: UsePrepareUserOperationParams) {
-  const { data } = useKernelCABClient({ chainId });
-  const kernelAccount = data?.kernelClient?.account;
-  const cabPaymasterClient = data?.cabPaymasterClient;
+  const { data } = useCABClient({ chainId });
+  const smartAccount = data?.account;
+  const cabClient = data?.cabClient;
 
   const mutation = useMutation({
     mutationFn: async ({ calls, repayTokens }: { calls: Call[], repayTokens: RepayToken[] }) => {
-      if (!kernelAccount || !cabPaymasterClient) {
+      if (!smartAccount || !cabClient) {
         throw new Error('KernelAccount or CABPaymasterClient is not available');
       }
 
-      const prepareUserOpFromCAB = await cabPaymasterClient.prepareUserOperationRequestCAB({
-        account: cabPaymasterClient.account,
+      const prepareUserOpFromCAB = await cabClient.prepareUserOperationRequestCAB({
+        account: cabClient.account,
         transactions: calls,
-        // userOperation: {
-        //   callData: await kernelAccount.encodeCallData(calls)
-        // },
         repayTokens
       });
 

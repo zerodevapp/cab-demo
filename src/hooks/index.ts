@@ -12,4 +12,4 @@ export { usePrepareUserOperation } from "./usePrepareUserOperation";
 
 export { useSendUserOperation } from "./useSendUserOperation";
 
-export { useKernelCABClient } from "./useKernelCABClient";
+export { useCABClient } from "./useCABClient";

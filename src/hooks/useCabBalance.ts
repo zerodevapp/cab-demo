@@ -1,23 +1,23 @@
 import { supportedChains, repayTokens } from "@/utils/constants";
 import { useQuery } from '@tanstack/react-query';
-import { useKernelCABClient } from "./useKernelCABClient";
+import { useCABClient } from "./useCABClient";
 
 export function useCabBalance() {
-  const { data } = useKernelCABClient({ chainId: supportedChains[1].id });
+  const { data } = useCABClient({ chainId: supportedChains[1].id });
 
-  const cabPaymasterClient = data?.cabPaymasterClient;
+  const cabClient = data?.cabClient;
   const address = data?.address;
   return useQuery({
     queryKey: ['cabBalance', address],
     queryFn: async () => {
-      if (!address || !cabPaymasterClient) {
-        throw new Error("Address or kernel account not available");
+      if (!address || !cabClient) {
+        throw new Error("Address or cabClient is not available");
       }
-      return await cabPaymasterClient.getCabBalance({
+      return await cabClient.getCabBalance({
         address,
         repayTokens
       });
     },
-    enabled: !!cabPaymasterClient || !!address,
+    enabled: !!cabClient || !!address,
   });
 }

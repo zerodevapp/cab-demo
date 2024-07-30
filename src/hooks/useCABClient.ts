@@ -8,7 +8,7 @@ import { signerToEcdsaKernelSmartAccount, signerToSafeSmartAccount } from "permi
 import { createPimlicoPaymasterClient, createPimlicoBundlerClient } from "permissionless/clients/pimlico"
 import { useAccountType } from "@/components/Provider/AccountProvider";
 
-export type UseKernelCABClientParams = {
+export type useCABClientParams = {
   chainId: number,
 }
 
@@ -29,9 +29,9 @@ const getAccountFromType = (accountType: string, publicClient: PublicClient, wal
   throw new Error("Unsupported account type");
 }
 
-export function useKernelCABClient({
+export function useCABClient({
   chainId
-}: UseKernelCABClientParams) {
+}: useCABClientParams) {
   const { account: accountType } = useAccountType();
   const { data: walletClient } = useWalletClient();
 
@@ -46,10 +46,10 @@ export function useKernelCABClient({
       const publicClient = createPublicClient({
         transport: http(getPublicRpc(chainId)),
       });
-      const account = await getAccountFromType(accountType, publicClient, walletClient);
+      const smartAccount = await getAccountFromType(accountType, publicClient, walletClient);
 
-      const kernelClient = createSmartAccountClient({
-        account: account,
+      const smartAccountClient = createSmartAccountClient({
+        account: smartAccount,
         entryPoint: ENTRYPOINT_ADDRESS_V07,
         chain: selectedChain.chain,
         bundlerTransport: http(getBundler(chainId)),
@@ -72,8 +72,8 @@ export function useKernelCABClient({
         transport: http(getPimlicoRpc(chainId)),
         entryPoint: ENTRYPOINT_ADDRESS_V07,
       })
-      const kernelClientVerifyingPaymaster = createSmartAccountClient({
-        account: account,
+      const smartAccountClientVerifyingPaymaster = createSmartAccountClient({
+        account: smartAccount,
         entryPoint: ENTRYPOINT_ADDRESS_V07,
         chain: selectedChain.chain,
         bundlerTransport: http(getBundler(chainId), { timeout: 30000 }),
@@ -83,7 +83,7 @@ export function useKernelCABClient({
         },
       })
 
-      const cabPaymasterClient = createCABClient(kernelClient, {
+      const cabClient = createCABClient(smartAccountClient, {
         transport: http(
           cabPaymasterUrl,
           {
@@ -93,7 +93,7 @@ export function useKernelCABClient({
         entryPoint: ENTRYPOINT_ADDRESS_V07,
       })
 
-      return { address: account.address, account, kernelClient, cabPaymasterClient, kernelClientVerifyingPaymaster };
+      return { address: smartAccount.address, account: smartAccount, smartAccountClient, cabClient, smartAccountClientVerifyingPaymaster };
     },
     enabled: !!walletClient,
     retry: false,
