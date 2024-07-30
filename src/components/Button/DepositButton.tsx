@@ -54,7 +54,10 @@ export function DepositButton() {
     if (!kernelClient || !refetch) return;
     try {
       setIsDepositPending(true);
-      await kernelClient.sendTransactions({ transactions: txs });
+      await kernelClient.sendTransactions({
+        account: kernelClient.account,
+        transactions: txs
+      });
       refetch();
       notifications.show({
         color: "green",

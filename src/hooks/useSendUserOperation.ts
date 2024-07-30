@@ -4,7 +4,7 @@ import { getChain, getBundler, supportedChains } from "@/utils/constants";
 import { http, type Hex } from 'viem';
 import { createBundlerClient } from "permissionless";
 import { useKernelCABClient, useTokenBalance } from "@/hooks";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { useMutation } from '@tanstack/react-query';
 
 export type UseSendUserOperationParams = {
@@ -16,6 +16,8 @@ export function useSendUserOperation({
   chainId,
   onSuccess,
 }: UseSendUserOperationParams) {
+  const selectedChain = useChainId();
+  const { switchChainAsync } = useSwitchChain();
   const { data } = useKernelCABClient({ chainId });
   const kernelClient = data?.kernelClient;
   const cabPaymasterClient = data?.cabPaymasterClient;
@@ -31,9 +33,12 @@ export function useSendUserOperation({
       if (!kernelAccount || !cabPaymasterClient) {
         throw new Error('KernelAccount or CABPaymasterClient is not available');
       }
+      if (selectedChain !== chainId) {
+        await switchChainAsync?.({ chainId });
+      }
 
       const userOpHash = await cabPaymasterClient.sendUserOperationCAB({
-        userOperation,
+        userOperation: userOperation as any,
         repayTokens,
       });
 

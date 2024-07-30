@@ -1,13 +1,10 @@
-import { useKernelClient, type KernelVersionType } from "@zerodev/waas";
 import {
   ReactNode,
   createContext,
   useCallback,
-  useEffect,
   useMemo,
   useState,
 } from "react";
-import ConnectModal from "../Modal/ConnectModal";
 import RegisterModal from "../Modal/RegisterModal";
 import CABModal from "../Modal/CABModal";
 import { RepayTokenInfo, SponsorTokenInfo } from "@/types";
@@ -27,10 +24,8 @@ export function useModalStateValue() {
 }
 
 interface ModalContextValue {
-  connectModalOpen: boolean;
   registerModalOpen: boolean;
   cabModalOpen: boolean;
-  openConnectModal?: ({ version }: { version: KernelVersionType }) => void;
   openRegisterModal?: () => void;
   openCABModal?: (
     { 
@@ -44,13 +39,11 @@ interface ModalContextValue {
       userOperation: UserOperation<GetEntryPointVersion<EntryPoint>>,
       chainId: number,
     }) => void;
-  closeConnectModal?: () => void;
   closeRegisterModal?: () => void;
   closeCABModal?: () => void;
 }
 
 export const ModalContext = createContext<ModalContextValue>({
-  connectModalOpen: false,
   registerModalOpen: false,
   cabModalOpen: false,
 });
@@ -60,18 +53,10 @@ interface ModalProviderProps {
 }
 
 export function ModalProvider({ children }: ModalProviderProps) {
-  const { kernelAccount } = useKernelClient();
-  const [kernelVersion, setKernelVersion] = useState<KernelVersionType>("v3");
   const [chainId, setChainId] = useState(1);
   const [repayTokensInfo, setRepayTokensInfo] = useState<RepayTokenInfo[]>([]);
   const [sponsorTokensInfo, setSponsorTokensInfo] = useState<SponsorTokenInfo[]>([]);
   const [userOperation, setUserOperation] = useState<UserOperation<GetEntryPointVersion<EntryPoint>>>();
-
-  const {
-    closeModal: closeConnectModal,
-    isModalOpen: connectModalOpen,
-    openModal: openConnectModal,
-  } = useModalStateValue();
 
   const {
     closeModal: closeRegisterModal,
@@ -84,20 +69,6 @@ export function ModalProvider({ children }: ModalProviderProps) {
     isModalOpen: cabModalOpen,
     openModal: openCABModal,
   } = useModalStateValue();
-
-  useEffect(() => {
-    if (kernelAccount) {
-      closeConnectModal();
-    }
-  }, [kernelAccount, closeConnectModal]);
-
-  const openConnectModalWithVersion = useCallback(
-    ({ version }: { version: KernelVersionType }) => {
-      setKernelVersion(version);
-      openConnectModal();
-    },
-    [openConnectModal]
-  );
 
   const openRegisterModalWithVersion = useCallback(
     () => {
@@ -130,13 +101,6 @@ export function ModalProvider({ children }: ModalProviderProps) {
     [openCABModal]
   )
 
-  const closeConnectModalWithVersion = useCallback(
-    () => {
-      closeConnectModal();
-    },
-    [closeConnectModal]
-  );
-
   const closeRegisterModalWithVersion = useCallback(
     () => {
       closeRegisterModal();
@@ -148,35 +112,24 @@ export function ModalProvider({ children }: ModalProviderProps) {
     <ModalContext.Provider
       value={useMemo(
         () => ({
-          connectModalOpen,
           registerModalOpen,
           cabModalOpen: cabModalOpen,
-          openConnectModal: openConnectModalWithVersion,
           openRegisterModal: openRegisterModalWithVersion,
           openCABModal: openCABModalWithCalls,
-          closeConnectModal: closeConnectModalWithVersion,
           closeRegisterModal: closeRegisterModalWithVersion,
           closeCABModal,
         }),
         [
-          connectModalOpen,
           registerModalOpen,
           cabModalOpen,
-          openConnectModalWithVersion,
           openRegisterModalWithVersion,
           openCABModalWithCalls,
-          closeConnectModalWithVersion,
           closeRegisterModalWithVersion,
           closeCABModal,
         ]
       )}
     >
-      {children}
-      <ConnectModal
-        onClose={closeConnectModal}
-        open={connectModalOpen}
-        version={kernelVersion}
-      /> 
+      {children} 
       <RegisterModal
         onClose={closeRegisterModal}
         open={registerModalOpen}

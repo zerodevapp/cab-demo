@@ -1,12 +1,13 @@
 import { useReadContract } from "wagmi";
 import { cabPaymasterAddress, invoiceManagerAddress, supportedChains } from "@/utils/constants";
-import { useKernelClient } from "@zerodev/waas";
+import { useKernelCABClient } from "@/hooks";
 import { invoiceManagerAbi } from "@/abis/invoiceManagerAbi";
 import { isAddressEqual } from "viem";
 import { useMemo } from "react";
 
 export function usePaymasterRegistered() {
-  const { address } = useKernelClient();
+  const { data } = useKernelCABClient({ chainId: supportedChains[0].id });
+  const address = data?.address ?? '0x';
   const { data: repayChainRegistered, isPending: isRepayPending } = useReadContract({
     address: invoiceManagerAddress,
     abi: invoiceManagerAbi,

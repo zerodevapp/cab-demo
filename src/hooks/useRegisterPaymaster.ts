@@ -15,6 +15,7 @@ import {
   testErc20Address,
   testErc20VaultAddress,
 } from "@/utils/constants";
+import { useChainId, useSwitchChain } from "wagmi";
 import { invoiceManagerAbi } from "@/abis/invoiceManagerAbi";
 import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
 import { useKernelCABClient } from "./useKernelCABClient";
@@ -28,6 +29,8 @@ export function useRegisterPaymaster({
   chainId,
   onSuccess,
 }: UseRegisterPaymasterParams) {
+  const connectedChainId = useChainId(); 
+  const { switchChainAsync } = useSwitchChain();
   const selectedChain = getChain(chainId);
   const isRepay = selectedChain.isRepay;
 
@@ -91,6 +94,9 @@ export function useRegisterPaymaster({
     mutationFn: async () => {
       if (!kernelClient || txs.length === 0) {
         throw new Error("Client or transactions not available");
+      }
+      if (connectedChainId !== chainId) {
+        await switchChainAsync?.({ chainId });
       }
       return await kernelClient.sendTransactions({ transactions: txs });
     },

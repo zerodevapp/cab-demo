@@ -1,71 +1,57 @@
 import { useWalletClient } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { getChain, getPublicRpc, getBundler, cabPaymasterUrl, getPaymaster } from "@/utils/constants";
-import { walletClientToSmartAccountSigner } from 'permissionless'
-import { http, createPublicClient } from 'viem';
-import { useKernelClient } from "@zerodev/waas";
-import { createKernelAccount, createKernelAccountClient, createZeroDevPaymasterClient } from "@zerodev/sdk";
-import { signerToEcdsaValidator } from '@zerodev/ecdsa-validator';
-import { createKernelCABClient } from "@zerodev/cab"
+import { getChain, getPublicRpc, getBundler, cabPaymasterUrl, getPimlicoRpc } from "@/utils/constants";
+import { walletClientToSmartAccountSigner, ENTRYPOINT_ADDRESS_V07, createSmartAccountClient } from 'permissionless'
+import { http, createPublicClient, WalletClient, PublicClient } from 'viem';
+import { createCABClient } from "@zerodev/cab"
+import { signerToEcdsaKernelSmartAccount, signerToSafeSmartAccount } from "permissionless/accounts"
+import { createPimlicoPaymasterClient, createPimlicoBundlerClient } from "permissionless/clients/pimlico"
+import { useAccountType } from "@/components/Provider/AccountProvider";
 
 export type UseKernelCABClientParams = {
   chainId: number,
 }
 
+const getAccountFromType = (accountType: string, publicClient: PublicClient, walletClient: WalletClient) => {
+  if (accountType === "kernel") {
+    return signerToEcdsaKernelSmartAccount(publicClient, {
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      signer: walletClientToSmartAccountSigner(walletClient as any),
+    })
+  } else if (accountType === "safe") {
+    return signerToSafeSmartAccount(publicClient, {
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      signer: walletClientToSmartAccountSigner(walletClient as any),
+      safeVersion: "1.4.1",
+    })
+  }
+
+  throw new Error("Unsupported account type");
+}
+
 export function useKernelCABClient({
   chainId
 }: UseKernelCABClientParams) {
-  const { kernelAccount } = useKernelClient();
+  const { account: accountType } = useAccountType();
   const { data: walletClient } = useWalletClient();
 
   return useQuery({
-    queryKey: ['cabKernelClient', chainId, kernelAccount?.address, walletClient?.account.address],
+    queryKey: ['cabKernelClient', chainId, walletClient?.account.address, accountType],
     queryFn: async () => {
-      if (!walletClient || !kernelAccount) {
-        throw new Error("Wallet client or kernel account not available");
+      if (!walletClient) {
+        throw new Error("Wallet client not available");
       }
 
       const selectedChain = getChain(chainId);
       const publicClient = createPublicClient({
         transport: http(getPublicRpc(chainId)),
       });
-      
-      const validator = await signerToEcdsaValidator(publicClient, {
-        signer: walletClientToSmartAccountSigner(walletClient as any),
-        entryPoint: kernelAccount.entryPoint,
-      });
-      
-      const account = await createKernelAccount(publicClient, {
-        plugins: {
-          sudo: validator,
-        },
-        entryPoint: kernelAccount.entryPoint,
-      });
-      const paymaster = getPaymaster(chainId);
-      const kernelClientVerifyingPaymaster = createKernelAccountClient({
-        account: account,
-        chain: selectedChain.chain,
-        entryPoint: account.entryPoint,
-        bundlerTransport: http(getBundler(chainId), { timeout: 30000 }),
-        middleware: {
-          sponsorUserOperation: ({ userOperation, entryPoint }) => {
-            const paymasterClient = createZeroDevPaymasterClient({
-              chain: selectedChain.chain,
-              entryPoint: entryPoint,
-              transport: http(paymaster),
-            }); 
+      const account = await getAccountFromType(accountType, publicClient, walletClient);
 
-            return paymasterClient.sponsorUserOperation({
-              userOperation,
-              entryPoint
-            });
-          }
-        }, 
-      })
-      const kernelClient = createKernelAccountClient({
+      const kernelClient = createSmartAccountClient({
         account: account,
+        entryPoint: ENTRYPOINT_ADDRESS_V07,
         chain: selectedChain.chain,
-        entryPoint: account.entryPoint,
         bundlerTransport: http(getBundler(chainId)),
         middleware: {
           sponsorUserOperation: ({ userOperation, entryPoint }) => {
@@ -76,19 +62,40 @@ export function useKernelCABClient({
             } as any;
           },
         },
-      });
-      const cabPaymasterClient = createKernelCABClient(kernelClient, {
+      })
+
+      const pimlicoPaymasterClient = createPimlicoPaymasterClient({
+        transport: http(getPimlicoRpc(chainId)),
+        entryPoint: ENTRYPOINT_ADDRESS_V07,
+      })
+      const pimlicoBundlerClient = createPimlicoBundlerClient({
+        transport: http(getPimlicoRpc(chainId)),
+        entryPoint: ENTRYPOINT_ADDRESS_V07,
+      })
+      const kernelClientVerifyingPaymaster = createSmartAccountClient({
+        account: account,
+        entryPoint: ENTRYPOINT_ADDRESS_V07,
+        chain: selectedChain.chain,
+        bundlerTransport: http(getBundler(chainId), { timeout: 30000 }),
+        middleware: {
+          sponsorUserOperation: pimlicoPaymasterClient.sponsorUserOperation, 
+          gasPrice: async () => (await pimlicoBundlerClient.getUserOperationGasPrice()).fast
+        },
+      })
+
+      const cabPaymasterClient = createCABClient(kernelClient, {
         transport: http(
           cabPaymasterUrl,
           {
             timeout: 30000
           }
         ),
+        entryPoint: ENTRYPOINT_ADDRESS_V07,
       })
 
-      return { address: account.address, kernelClient, cabPaymasterClient, kernelClientVerifyingPaymaster };
+      return { address: account.address, account, kernelClient, cabPaymasterClient, kernelClientVerifyingPaymaster };
     },
-    enabled: !!walletClient && !!kernelAccount,
+    enabled: !!walletClient,
     retry: false,
     refetchOnWindowFocus: false,
   });

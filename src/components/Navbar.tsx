@@ -1,11 +1,12 @@
 "use client";
 import { Flex } from "@mantine/core";
-import { useKernelClient } from "@zerodev/waas";
 import { ConnectButton, DepositButton } from "./Button";
+import { useAccount } from "wagmi"
+import { SelectAccountButton } from "./Button";
 
 export default function Navbar() {
-  const { isConnected } = useKernelClient();
-
+  const { isConnected } = useAccount();
+  
   return (
     <Flex
       w="100vw"
@@ -18,6 +19,7 @@ export default function Navbar() {
       <Flex justify="flex-end" miw={20} gap="sm" w="100%">
         {isConnected && (
           <>
+            <SelectAccountButton />
             <DepositButton />  
             <ConnectButton />
           </>
