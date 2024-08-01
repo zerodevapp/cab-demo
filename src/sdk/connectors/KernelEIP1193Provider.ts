@@ -1,10 +1,4 @@
 import { EventEmitter } from "events"
-import {
-    deserializePermissionAccount,
-    serializePermissionAccount,
-    toPermissionValidator
-} from "@zerodev/permissions"
-import { toECDSASigner } from "@zerodev/permissions/signers"
 import type { KernelAccountClient, KernelSmartAccount } from "@zerodev/sdk"
 import { createKernelAccount, createKernelAccountClient } from "@zerodev/sdk"
 import type { SponsorUserOperationReturnType } from "@zerodev/sdk/actions"
@@ -15,7 +9,6 @@ import {
     ENTRYPOINT_ADDRESS_V07,
     type EstimateUserOperationGasReturnType,
     bundlerActions,
-    createBundlerClient
 } from "permissionless"
 import {
     type GetPaymasterDataParameters,
@@ -50,7 +43,7 @@ import type {
     SendCallsResult,
     SessionType
 } from "./types"
-import { getPolicies, validatePermissions } from "./utils/permissions"
+
 import { KernelLocalStorage } from "./utils/storage"
 import { type CABClient } from "@zerodev/cab"
 import type { SmartAccount } from "permissionless/accounts"
@@ -407,7 +400,6 @@ export class KernelEIP1193Provider<
             throw new Error("invalid chain id")
         }
         if (
-            this.cabClient.account.entryPoint !== ENTRYPOINT_ADDRESS_V07 &&
             capabilities?.permissions
         ) {
             throw new Error("Permissions not supported with kernel v2")
@@ -428,56 +420,21 @@ export class KernelEIP1193Provider<
             Chain,
             KernelSmartAccount<entryPoint>
         >
-        const permission = this.getItemFromStorage(
-            WALLET_PERMISSION_STORAGE_KEY
-        ) as SessionType
+
         const paymasterService = await this.getPaymasterService(
             capabilities?.paymasterService,
             this.cabClient.chain
         )
 
-        const sessionId = capabilities?.permissions?.sessionId
-        const session = permission?.[accountAddress]?.[
-            toHex(accountChainId)
-        ]?.find((session) => session.sessionId === sessionId)
-        if (session && this.cabClient?.account?.client) {
-            const sessionSigner = await toECDSASigner({
-                signer: privateKeyToAccount(session.signerPrivateKey)
-            })
-            const sessionKeyAccount = (await deserializePermissionAccount(
-                this.cabClient.account.client as Client<
-                    Transport,
-                    Chain,
-                    undefined
-                >,
-                this.cabClient.account.entryPoint,
-                this.kernelClient.account.kernelVersion,
-                session.approval,
-                sessionSigner
-            )) as unknown as KernelSmartAccount<entryPoint, Transport, Chain>
-
-            const kernelClient = createKernelAccountClient({
-                account: sessionKeyAccount,
-                chain: this.cabClient.chain,
-                entryPoint: this.cabClient.account.entryPoint,
-                bundlerTransport: http(this.cabClient.transport.url),
-                middleware: {
-                    sponsorUserOperation: paymasterService
-                }
-            })
-
-            kernelAccountClient = kernelClient
-        } else {
-            kernelAccountClient = createKernelAccountClient({
-                account: this.kernelClient.account,
-                chain: this.kernelClient.chain,
-                entryPoint: this.kernelClient.account.entryPoint,
-                bundlerTransport: http(this.cabClient.transport.url),
-                middleware: {
-                    sponsorUserOperation: paymasterService
-                }
-            })
-        }
+        kernelAccountClient = createKernelAccountClient({
+            account: this.kernelClient.account,
+            chain: this.kernelClient.chain,
+            entryPoint: this.kernelClient.account.entryPoint,
+            bundlerTransport: http(this.kernelClient.transport.url),
+            middleware: {
+                sponsorUserOperation: paymasterService
+            }
+        })
 
         const encodedeCall = await kernelAccountClient.account.encodeCallData(
             calls.map((call) => ({
@@ -544,96 +501,7 @@ export class KernelEIP1193Provider<
     private async handleWalletGrantPermissions(
         params: [GrantPermissionsParams]
     ) {
-        if (this.cabClient.account.entryPoint !== ENTRYPOINT_ADDRESS_V07) {
-            throw new Error("Permissions not supported with kernel v2")
-        }
-        const capabilities =
-            this.handleWalletCapabilities()[toHex(this.cabClient.chain.id)]
-                .permissions.permissionTypes
-
-        validatePermissions(params[0], capabilities)
-        const policies = getPolicies(params[0])
-        const permissions = params[0].permissions
-
-        // signer
-        const sessionPrivateKey = generatePrivateKey()
-        const sessionKeySigner = toECDSASigner({
-            signer: privateKeyToAccount(sessionPrivateKey)
-        })
-
-        const client = this.cabClient.account.client as Client<
-            Transport,
-            Chain | undefined,
-            undefined
-        >
-
-        const permissionValidator = await toPermissionValidator(client, {
-            entryPoint: this.kernelClient.account.entryPoint,
-            kernelVersion: this.kernelClient.account.kernelVersion,
-            signer: sessionKeySigner,
-            policies: policies
-        })
-
-        const sudoValidator =
-            this.kernelClient.account.kernelPluginManager.sudoValidator
-        const sessionKeyAccount = await createKernelAccount(client, {
-            entryPoint: this.kernelClient.account.entryPoint,
-            kernelVersion: this.kernelClient.account.kernelVersion,
-            plugins: {
-                sudo: sudoValidator,
-                regular: permissionValidator
-            }
-        })
-        const enabledSignature =
-            await sessionKeyAccount.kernelPluginManager.getPluginEnableSignature(
-                sessionKeyAccount.address
-            )
-        const sessionKeyAccountWithSig = await createKernelAccount(client, {
-            entryPoint: this.kernelClient.account.entryPoint,
-            kernelVersion: this.kernelClient.account.kernelVersion,
-            plugins: {
-                sudo: sudoValidator,
-                regular: permissionValidator,
-                pluginEnableSignature: enabledSignature
-            }
-        })
-
-        const createdPermissions =
-            this.getItemFromStorage(WALLET_PERMISSION_STORAGE_KEY) || {}
-        const newPermission = {
-            sessionId: permissionValidator.getIdentifier(),
-            entryPoint: this.cabClient.account.entryPoint,
-            signerPrivateKey: sessionPrivateKey,
-            approval: await serializePermissionAccount(sessionKeyAccountWithSig)
-        }
-
-        const address = this.cabClient.account.address
-        const chainId = toHex(this.cabClient.chain.id)
-
-        const mergedPermissions: SessionType = { ...createdPermissions }
-
-        if (!mergedPermissions[address]) {
-            mergedPermissions[address] = {}
-        }
-
-        if (!mergedPermissions[address][chainId]) {
-            mergedPermissions[address][chainId] = []
-        }
-
-        mergedPermissions[address][chainId].push(newPermission)
-        this.storeItemToStorage(
-            WALLET_PERMISSION_STORAGE_KEY,
-            mergedPermissions
-        )
-        return {
-            grantedPermissions: permissions.map((permission) => ({
-                type: permission.type,
-                data: permission.data,
-                policies: permission.policies
-            })),
-            expiry: params[0].expiry,
-            permissionsContext: permissionValidator.getIdentifier()
-        }
+        throw new Error("Permissions not supported")
     }
 
     private async getPaymasterService(
