@@ -6,9 +6,11 @@ import { Notifications } from "@mantine/notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
+import { metaMask } from "wagmi/connectors";
 import { sepolia, polygonAmoy } from "wagmi/chains";
 import { ModalProvider } from "./ModalProvider";
 import { AccountProvider } from "./AccountProvider";
+import { wrapWithSmartWallet } from "@/sdk";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const config = createConfig({
@@ -17,6 +19,8 @@ export default function Providers({ children }: { children: ReactNode }) {
       [sepolia.id]: http(getPublicRpc(sepolia.id)),
       [polygonAmoy.id]: http(getPublicRpc(polygonAmoy.id)),
     },
+    connectors: [wrapWithSmartWallet(metaMask())],
+    multiInjectedProviderDiscovery: false,
   });
   const queryClient = new QueryClient();
 
@@ -26,9 +30,8 @@ export default function Providers({ children }: { children: ReactNode }) {
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <AccountProvider>
-          <ModalProvider>{children}</ModalProvider>
-
-            </AccountProvider>
+            <ModalProvider>{children}</ModalProvider>
+          </AccountProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </MantineProvider>

@@ -13,3 +13,5 @@ export { usePrepareUserOperation } from "./usePrepareUserOperation";
 export { useSendUserOperation } from "./useSendUserOperation";
 
 export { useCABClient } from "./useCABClient";
+
+export { useEoaAddress } from "./useEoaAddress";

@@ -39,7 +39,7 @@ import type {
     SendTransactionParameters,
     Transport,
 } from "viem"
-import { http, type Hex, isHex, toHex } from "viem"
+import { http, type Hex, isHex, toHex, type WalletClient, type Account } from "viem"
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts"
 import type {
     GetCallsParams,
@@ -56,6 +56,13 @@ import { type CABClient } from "@zerodev/cab"
 import type { SmartAccount } from "permissionless/accounts"
 import type { RepayToken, Call } from "../../types"
 import { repayTokens, supportedChains, testErc20Address } from "@/utils/constants";
+import { createClient, custom, walletActions, createPublicClient } from "viem";
+import { walletClientToSmartAccountSigner, createSmartAccountClient } from "permissionless";
+import { signerToEcdsaKernelSmartAccount } from "permissionless/accounts";
+import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator";
+import { KERNEL_V3_0 } from "@zerodev/sdk/constants";
+import { getPublicRpc, getBundler, cabPaymasterUrl } from "@/utils/constants";
+import { createCABClient } from "@zerodev/cab"
 
 const WALLET_CAPABILITIES_STORAGE_KEY = "WALLET_CAPABILITIES"
 const WALLET_PERMISSION_STORAGE_KEY = "WALLET_PERMISSION"
@@ -115,6 +122,9 @@ export class KernelEIP1193Provider<
                     paymasterService: {
                         supported: true
                     },
+                    cab: {
+                        supported: true
+                    },
                     permissions: {
                         supported: false
                     }
@@ -127,6 +137,75 @@ export class KernelEIP1193Provider<
         )
     }
 
+    static async initFromProvider(
+        provider: any,
+        accounts: `0x${string}`[],
+        chain: Chain,
+    ): Promise<KernelEIP1193Provider<EntryPoint>> {
+        const walletClient = createClient({
+            account: accounts[0],
+            chain: chain,
+            name: "Connector Client",
+            transport: (opts) => custom(provider)({ ...opts, retryCount: 0 }),
+        }).extend(walletActions) as WalletClient<Transport, Chain, Account>;
+
+        const publicClient = createPublicClient({
+            transport: http(getPublicRpc(chain.id)),
+        });
+
+        const smartAccount = await signerToEcdsaKernelSmartAccount(publicClient, {
+            entryPoint: ENTRYPOINT_ADDRESS_V07,
+            signer: walletClientToSmartAccountSigner(walletClient),
+        });
+
+        const smartAccountClient = createSmartAccountClient({
+            account: smartAccount,
+            entryPoint: ENTRYPOINT_ADDRESS_V07,
+            chain: chain,
+            bundlerTransport: http(getBundler(chain.id)),
+            middleware: {
+                sponsorUserOperation: ({ userOperation, entryPoint }) => {
+                    return {
+                        callGasLimit: 0n,
+                        verificationGasLimit: 0n,
+                        preVerificationGas: 0n,
+                    } as any;
+                },
+            },
+        });
+
+        const cabClient = createCABClient(smartAccountClient, {
+            transport: http(cabPaymasterUrl, { timeout: 30000 }),
+            entryPoint: ENTRYPOINT_ADDRESS_V07,
+        }) as CABClient<EntryPoint, Transport, Chain, SmartAccount<EntryPoint>>;
+
+        const ecdsaValidator = await signerToEcdsaValidator(publicClient, {
+            entryPoint: ENTRYPOINT_ADDRESS_V07,
+            kernelVersion: KERNEL_V3_0,
+            signer: walletClientToSmartAccountSigner(walletClient),
+        });
+
+        const kernelAccount = await createKernelAccount(publicClient, {
+            entryPoint: ENTRYPOINT_ADDRESS_V07,
+            kernelVersion: KERNEL_V3_0,
+            plugins: {
+                sudo: ecdsaValidator,
+            },
+        });
+
+        const kernelClient = createKernelAccountClient({
+            account: kernelAccount,
+            chain: chain,
+            entryPoint: ENTRYPOINT_ADDRESS_V07,
+            bundlerTransport: http(getBundler(chain.id)),
+        });
+
+        return new KernelEIP1193Provider(
+            cabClient,
+            kernelClient as KernelAccountClient<EntryPoint>
+        );
+    }
+
     getChainId() {
         return this.handleGetChainId()
     }
@@ -136,6 +215,8 @@ export class KernelEIP1193Provider<
         params = []
     }: EIP1193Parameters): ReturnType<EIP1193RequestFn> {
         switch (method) {
+            case "yi_getCabBalance":
+                return this.handleGetCabBalance()
             case "eth_chainId":
                 return this.handleGetChainId()
             case "eth_requestAccounts":
@@ -149,7 +230,7 @@ export class KernelEIP1193Provider<
                     data: tx.data || '0x',
                     value: tx.value ? BigInt(tx.value) : 0n
                 };
-                return this.sendUserOp([call]);
+                return this.sendCABUserOp([call]);
             }
             // case "eth_sendTransaction": {
             //     const p = (params as any[])[0];
@@ -182,6 +263,12 @@ export class KernelEIP1193Provider<
             case "wallet_getCapabilities":
                 return this.handleWalletCapabilities()
             case "wallet_sendCalls":
+                const [sendCallsParams] = params as [SendCallsParams];
+                // return this.sendCABUserOp(sendCallsParams.calls.map(call => ({
+                //     to: call.to || '0x',
+                //     data: call.data || '0x',
+                //     value: call.value ? BigInt(call.value) : 0n
+                // })));
                 return this.handleWalletSendcalls(params as [SendCallsParams])
             case "wallet_getCallsStatus":
                 return this.handleWalletGetCallStatus(
@@ -196,6 +283,14 @@ export class KernelEIP1193Provider<
             default:
                 return this.cabClient.transport.request({ method, params })
         }
+    }
+
+    private async handleGetCabBalance() {
+        return this.cabClient.getCabBalance({
+            address: this.kernelClient.account.address,
+            token: testErc20Address,
+            repayTokens
+        })
     }
 
     private handleGetChainId() {
@@ -316,6 +411,15 @@ export class KernelEIP1193Provider<
             capabilities?.permissions
         ) {
             throw new Error("Permissions not supported with kernel v2")
+        }
+
+        if (capabilities?.cab?.useCab === true) {
+            const cabCalls = calls.map(call => ({
+                to: call.to || '0x',
+                data: call.data || '0x',
+                value: call.value ? BigInt(call.value) : 0n
+            }));
+            return this.sendCABUserOp(cabCalls);
         }
 
         let kernelAccountClient: KernelAccountClient<
@@ -639,7 +743,7 @@ export class KernelEIP1193Provider<
         this.storage.setItem(key, JSON.stringify(item))
     }
 
-    private async sendUserOp(calls: Call[], repayTokensParam?: RepayToken[]) {
+    private async sendCABUserOp(calls: Call[], repayTokensParam?: RepayToken[]) {
         const _repayTokens = repayTokensParam || repayTokens
 
         if (!this.cabClient || !this.cabClient.account) {

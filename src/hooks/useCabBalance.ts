@@ -1,24 +1,22 @@
 import { supportedChains, repayTokens, testErc20Address } from "@/utils/constants";
 import { useQuery } from '@tanstack/react-query';
-import { useCABClient } from "./useCABClient";
-
+import { useWalletClient } from "wagmi";
 export function useCabBalance() {
-  const { data } = useCABClient({ chainId: supportedChains[1].id });
+  // const { data } = useCABClient({ chainId: supportedChains[1].id });
+  const { data: client } = useWalletClient();
 
-  const cabClient = data?.cabClient;
-  const address = data?.address;
   return useQuery({
-    queryKey: ['cabBalance', address],
+    queryKey: ['cabBalance', client?.account?.address],
     queryFn: async () => {
-      if (!address || !cabClient) {
+      if (!client?.account) {
         throw new Error("Address or cabClient is not available");
       }
-      return await cabClient.getCabBalance({
-        address,
-        token: testErc20Address,
-        repayTokens
-      });
+      const balance: bigint = await client.transport.request({
+        method: "yi_getCabBalance",
+        params: []
+      })
+      return balance;
     },
-    enabled: !!cabClient || !!address,
+    enabled: !!client?.account,
   });
 }

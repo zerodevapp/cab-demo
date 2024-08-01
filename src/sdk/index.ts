@@ -1,0 +1,1 @@
+export { wrapWithSmartWallet } from "./connectors/wrapWithSmartWallet";
