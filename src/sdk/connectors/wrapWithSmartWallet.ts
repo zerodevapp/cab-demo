@@ -1,7 +1,9 @@
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator";
 import { createKernelAccount, createKernelAccountClient } from "@zerodev/sdk";
-import { walletClientToSmartAccountSigner } from "permissionless";
+import { ENTRYPOINT_ADDRESS_V07 } from 'permissionless'
+import { walletClientToSmartAccountSigner, createSmartAccountClient } from "permissionless";
 import type { EntryPoint } from "permissionless/types";
+import { signerToEcdsaKernelSmartAccount } from "permissionless/accounts"
 import {
     http,
     type Account,
@@ -23,6 +25,12 @@ import {
     getEntryPointFromZeroDevVersion,
     getKernelVersionFromZeroDevVersion,
 } from "./utils/provider";
+import { getChain, getPublicRpc, getBundler, cabPaymasterUrl, getPimlicoRpc } from "@/utils/constants";
+import { createPimlicoPaymasterClient, createPimlicoBundlerClient } from "permissionless/clients/pimlico"
+import { createCABClient } from "@zerodev/cab"
+import { KERNEL_V3_0 } from "@zerodev/sdk/constants"
+import { type CABClient } from "@zerodev/cab"
+import type { SmartAccount } from "permissionless/accounts"
 
 type ExplicitAny = any;
 interface SmartWalletConfig {
@@ -77,19 +85,55 @@ export const wrapWithSmartWallet = (
                         }).extend(walletActions) as WalletClient<Transport, Chain, Account>;
 
                         const publicClient = createPublicClient({
-                            chain: connetedChain,
-                            transport: http(
-                                `https://rpc.zerodev.app/api/v2/bundler/${configOptions.projectId}`
-                            ),
+                            transport: http(getPublicRpc(chainId)),
                         });
+
+                        // new start
+                        const smartAccount = await signerToEcdsaKernelSmartAccount(publicClient, {
+                            entryPoint: ENTRYPOINT_ADDRESS_V07,
+                            signer: walletClientToSmartAccountSigner(walletClient),
+                        })
+
+                        const smartAccountClient = createSmartAccountClient({
+                            account: smartAccount,
+                            entryPoint: ENTRYPOINT_ADDRESS_V07,
+                            chain: connetedChain,
+                            bundlerTransport: http(getBundler(chainId)),
+                            middleware: {
+                              sponsorUserOperation: ({ userOperation, entryPoint }) => {
+                                return {
+                                  callGasLimit: 0n,
+                                  verificationGasLimit: 0n,
+                                  preVerificationGas: 0n,
+                                } as any;
+                              },
+                            },
+                          })
+                    
+                          const cabClient = createCABClient(smartAccountClient, {
+                            transport: http(
+                              cabPaymasterUrl,
+                              {
+                                timeout: 30000
+                              }
+                            ),
+                            entryPoint: ENTRYPOINT_ADDRESS_V07,
+                          }) as CABClient<
+                                EntryPoint,
+                                Transport,
+                                Chain,
+                                SmartAccount<EntryPoint>
+                            >
+
+
                         const ecdsaValidator = await signerToEcdsaValidator(publicClient, {
                             entryPoint: entryPoint,
-                            kernelVersion,
+                            kernelVersion: KERNEL_V3_0,
                             signer: walletClientToSmartAccountSigner(walletClient),
                         });
                         const kernelAccount = await createKernelAccount(publicClient, {
                             entryPoint: entryPoint,
-                            kernelVersion,
+                            kernelVersion: KERNEL_V3_0,
                             plugins: {
                                 sudo: ecdsaValidator,
                             },
@@ -98,16 +142,15 @@ export const wrapWithSmartWallet = (
                             account: kernelAccount,
                             chain: connetedChain,
                             entryPoint: entryPoint,
-                            bundlerTransport: http(
-                                `https://rpc.zerodev.app/api/v2/bundler/${configOptions.projectId}`
-                            ),
+                            bundlerTransport: http(getBundler(chainId)),
                         });
-                        kernelProvider = new KernelEIP1193Provider(kernelClient, {
-                            paymasterUrl: configOptions.paymasterUrl,
-                        });
+                        kernelProvider = new KernelEIP1193Provider(
+                            cabClient,
+                            kernelClient,
+                        );
 
                         return {
-                            accounts: [kernelAccount.address],
+                            accounts: [cabClient.account.address],
                             chainId: connetedChain.id,
                         };
                     };

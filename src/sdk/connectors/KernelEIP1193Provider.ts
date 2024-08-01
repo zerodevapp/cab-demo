@@ -14,7 +14,8 @@ import {
     ENTRYPOINT_ADDRESS_V06,
     ENTRYPOINT_ADDRESS_V07,
     type EstimateUserOperationGasReturnType,
-    bundlerActions
+    bundlerActions,
+    createBundlerClient
 } from "permissionless"
 import {
     type GetPaymasterDataParameters,
@@ -51,6 +52,10 @@ import type {
 } from "./types"
 import { getPolicies, validatePermissions } from "./utils/permissions"
 import { KernelLocalStorage } from "./utils/storage"
+import { type CABClient } from "@zerodev/cab"
+import type { SmartAccount } from "permissionless/accounts"
+import type { RepayToken, Call } from "../../types"
+import { repayTokens, supportedChains, testErc20Address } from "@/utils/constants";
 
 const WALLET_CAPABILITIES_STORAGE_KEY = "WALLET_CAPABILITIES"
 const WALLET_PERMISSION_STORAGE_KEY = "WALLET_PERMISSION"
@@ -60,6 +65,12 @@ export class KernelEIP1193Provider<
 > extends EventEmitter {
     private readonly paymasterUrl?: string
     private readonly storage = new KernelLocalStorage("ZDWALLET")
+    private cabClient: CABClient<
+        entryPoint,
+        Transport,
+        Chain,
+        SmartAccount<entryPoint>
+    >
     private kernelClient: KernelAccountClient<
         entryPoint,
         Transport,
@@ -68,15 +79,26 @@ export class KernelEIP1193Provider<
     >
     private bundlerClient: BundlerClient<entryPoint>
 
-    constructor(kernelClient: KernelAccountClient<entryPoint>, config: { paymasterUrl?: string }) {
+    constructor(
+        cabClient: CABClient<entryPoint, Transport, Chain, SmartAccount<entryPoint>>,
+        kernelClient: KernelAccountClient<entryPoint>
+    ) {
         super()
-        this.paymasterUrl = config.paymasterUrl
+
+        if (
+            typeof cabClient.account !== "object" ||
+            typeof cabClient.chain !== "object"
+        ) {
+            throw new Error("invalid cab client")
+        }
         if (
             typeof kernelClient.account !== "object" ||
             typeof kernelClient.chain !== "object"
         ) {
             throw new Error("invalid kernel client")
         }
+
+        this.cabClient = cabClient
         this.kernelClient = kernelClient as KernelAccountClient<
             entryPoint,
             Transport,
@@ -84,38 +106,24 @@ export class KernelEIP1193Provider<
             KernelSmartAccount<entryPoint>
         >
 
-        const permissions =
-            kernelClient.account.entryPoint === ENTRYPOINT_ADDRESS_V07
-                ? {
-                    supported: true,
-                    permissionTypes: [
-                        "sudo",
-                        "contract-call",
-                        "rate-limit",
-                        "gas-limit",
-                        "signature"
-                    ]
-                }
-                : {
-                    supported: false
-                }
-
         const capabilities = {
-            [kernelClient.account.address]: {
-                [toHex(kernelClient.chain.id)]: {
+            [this.cabClient.account.address]: {
+                [toHex(this.cabClient.chain.id)]: {
                     atomicBatch: {
                         supported: true
                     },
                     paymasterService: {
                         supported: true
                     },
-                    permissions
+                    permissions: {
+                        supported: false
+                    }
                 }
             }
         }
         this.storeItemToStorage(WALLET_CAPABILITIES_STORAGE_KEY, capabilities)
-        this.bundlerClient = kernelClient.extend(
-            bundlerActions(kernelClient.account.entryPoint)
+        this.bundlerClient = this.cabClient.extend(
+            bundlerActions(this.cabClient.account.entryPoint)
         )
     }
 
@@ -135,26 +143,35 @@ export class KernelEIP1193Provider<
             case "eth_accounts":
                 return this.handleEthAccounts()
             case "eth_sendTransaction": {
-                const p = (params as any[])[0];
-                const capabilities: { paymasterService?: { url: string } } = {};
-                if (this.paymasterUrl) {
-                    capabilities.paymasterService = {
-                        url: this.paymasterUrl
-                    }
-                }
-                const paramss = {
-                    version: "1.0",
-                    chainId: toHex(await this.handleGetChainId()),
-                    from: p.from,
-                    calls: [{
-                        to: p.to,
-                        data: p.data,
-                        value: p.value
-                    }],
-                    capabilities,
-                }
-                return this.handleWalletSendcalls([paramss])
+                const [tx] = params as [SendTransactionParameters];
+                const call: Call = {
+                    to: tx.to || "0x",
+                    data: tx.data || '0x',
+                    value: tx.value ? BigInt(tx.value) : 0n
+                };
+                return this.sendUserOp([call]);
             }
+            // case "eth_sendTransaction": {
+            //     const p = (params as any[])[0];
+            //     const capabilities: { paymasterService?: { url: string } } = {};
+            //     if (this.paymasterUrl) {
+            //         capabilities.paymasterService = {
+            //             url: this.paymasterUrl
+            //         }
+            //     }
+            //     const paramss = {
+            //         version: "1.0",
+            //         chainId: toHex(await this.handleGetChainId()),
+            //         from: p.from,
+            //         calls: [{
+            //             to: p.to,
+            //             data: p.data,
+            //             value: p.value
+            //         }],
+            //         capabilities,
+            //     }
+            //     return this.handleWalletSendcalls([paramss])
+            // }
             case "eth_sign":
                 return this.handleEthSign(params as [string, string])
             case "personal_sign":
@@ -177,26 +194,26 @@ export class KernelEIP1193Provider<
             case "wallet_switchEthereumChain":
                 return this.handleSwitchEthereumChain()
             default:
-                return this.kernelClient.transport.request({ method, params })
+                return this.cabClient.transport.request({ method, params })
         }
     }
 
     private handleGetChainId() {
-        return this.kernelClient.chain.id
+        return this.cabClient.chain.id
     }
 
     private async handleEthRequestAccounts(): Promise<string[]> {
-        if (!this.kernelClient.account) {
+        if (!this.cabClient.account) {
             return []
         }
-        return [this.kernelClient.account.address]
+        return [this.cabClient.account.address]
     }
 
     private async handleEthAccounts(): Promise<string[]> {
-        if (!this.kernelClient.account) {
+        if (!this.cabClient.account) {
             return []
         }
-        return [this.kernelClient.account.address]
+        return [this.cabClient.account.address]
     }
 
     private async handleEthSendTransaction(params: unknown): Promise<Hash> {
@@ -210,13 +227,13 @@ export class KernelEIP1193Provider<
     }
 
     private async handleEthSign(params: [string, string]): Promise<string> {
-        if (!this.kernelClient?.account) {
+        if (!this.cabClient?.account) {
             throw new Error("account not connected!")
         }
         const [address, message] = params
         if (
             address.toLowerCase() !==
-            this.kernelClient.account.address.toLowerCase()
+            this.cabClient.account.address.toLowerCase()
         ) {
             throw new Error(
                 "cannot sign for address that is not the current account"
@@ -232,13 +249,13 @@ export class KernelEIP1193Provider<
     private async handlePersonalSign(
         params: [string, string]
     ): Promise<string> {
-        if (!this.kernelClient?.account) {
+        if (!this.cabClient?.account) {
             throw new Error("account not connected!")
         }
         const [message, address] = params
         if (
             address.toLowerCase() !==
-            this.kernelClient.account.address.toLowerCase()
+            this.cabClient.account.address.toLowerCase()
         ) {
             throw new Error(
                 "cannot sign for address that is not the current account"
@@ -254,14 +271,14 @@ export class KernelEIP1193Provider<
     private async handleEthSignTypedDataV4(
         params: [string, string]
     ): Promise<string> {
-        if (!this.kernelClient?.account) {
+        if (!this.cabClient?.account) {
             throw new Error("account not connected!")
         }
         const [address, typedDataJSON] = params
         const typedData = JSON.parse(typedDataJSON)
         if (
             address.toLowerCase() !==
-            this.kernelClient.account.address.toLowerCase()
+            this.cabClient.account.address.toLowerCase()
         ) {
             throw new Error(
                 "cannot sign for address that is not the current account"
@@ -284,8 +301,8 @@ export class KernelEIP1193Provider<
     private async handleWalletSendcalls(
         params: [SendCallsParams]
     ): Promise<SendCallsResult> {
-        const accountAddress = this.kernelClient.account.address
-        const accountChainId = this.kernelClient.chain.id
+        const accountAddress = this.cabClient.account.address
+        const accountChainId = this.cabClient.chain.id
 
         const { calls, capabilities, from, chainId } = params[0]
         if (from !== accountAddress) {
@@ -295,7 +312,7 @@ export class KernelEIP1193Provider<
             throw new Error("invalid chain id")
         }
         if (
-            this.kernelClient.account.entryPoint !== ENTRYPOINT_ADDRESS_V07 &&
+            this.cabClient.account.entryPoint !== ENTRYPOINT_ADDRESS_V07 &&
             capabilities?.permissions
         ) {
             throw new Error("Permissions not supported with kernel v2")
@@ -312,24 +329,24 @@ export class KernelEIP1193Provider<
         ) as SessionType
         const paymasterService = await this.getPaymasterService(
             capabilities?.paymasterService,
-            this.kernelClient.chain
+            this.cabClient.chain
         )
 
         const sessionId = capabilities?.permissions?.sessionId
         const session = permission?.[accountAddress]?.[
             toHex(accountChainId)
         ]?.find((session) => session.sessionId === sessionId)
-        if (session && this.kernelClient?.account?.client) {
+        if (session && this.cabClient?.account?.client) {
             const sessionSigner = await toECDSASigner({
                 signer: privateKeyToAccount(session.signerPrivateKey)
             })
             const sessionKeyAccount = (await deserializePermissionAccount(
-                this.kernelClient.account.client as Client<
+                this.cabClient.account.client as Client<
                     Transport,
                     Chain,
                     undefined
                 >,
-                this.kernelClient.account.entryPoint,
+                this.cabClient.account.entryPoint,
                 this.kernelClient.account.kernelVersion,
                 session.approval,
                 sessionSigner
@@ -337,9 +354,9 @@ export class KernelEIP1193Provider<
 
             const kernelClient = createKernelAccountClient({
                 account: sessionKeyAccount,
-                chain: this.kernelClient.chain,
-                entryPoint: this.kernelClient.account.entryPoint,
-                bundlerTransport: http(this.kernelClient.transport.url),
+                chain: this.cabClient.chain,
+                entryPoint: this.cabClient.account.entryPoint,
+                bundlerTransport: http(this.cabClient.transport.url),
                 middleware: {
                     sponsorUserOperation: paymasterService
                 }
@@ -351,7 +368,7 @@ export class KernelEIP1193Provider<
                 account: this.kernelClient.account,
                 chain: this.kernelClient.chain,
                 entryPoint: this.kernelClient.account.entryPoint,
-                bundlerTransport: http(this.kernelClient.transport.url),
+                bundlerTransport: http(this.cabClient.transport.url),
                 middleware: {
                     sponsorUserOperation: paymasterService
                 }
@@ -379,7 +396,7 @@ export class KernelEIP1193Provider<
         ) as Record<string, any> | undefined
 
         return capabilities
-            ? capabilities[this.kernelClient.account.address]
+            ? capabilities[this.cabClient.account.address]
             : {}
     }
 
@@ -423,11 +440,11 @@ export class KernelEIP1193Provider<
     private async handleWalletGrantPermissions(
         params: [GrantPermissionsParams]
     ) {
-        if (this.kernelClient.account.entryPoint !== ENTRYPOINT_ADDRESS_V07) {
+        if (this.cabClient.account.entryPoint !== ENTRYPOINT_ADDRESS_V07) {
             throw new Error("Permissions not supported with kernel v2")
         }
         const capabilities =
-            this.handleWalletCapabilities()[toHex(this.kernelClient.chain.id)]
+            this.handleWalletCapabilities()[toHex(this.cabClient.chain.id)]
                 .permissions.permissionTypes
 
         validatePermissions(params[0], capabilities)
@@ -440,7 +457,7 @@ export class KernelEIP1193Provider<
             signer: privateKeyToAccount(sessionPrivateKey)
         })
 
-        const client = this.kernelClient.account.client as Client<
+        const client = this.cabClient.account.client as Client<
             Transport,
             Chain | undefined,
             undefined
@@ -481,13 +498,13 @@ export class KernelEIP1193Provider<
             this.getItemFromStorage(WALLET_PERMISSION_STORAGE_KEY) || {}
         const newPermission = {
             sessionId: permissionValidator.getIdentifier(),
-            entryPoint: this.kernelClient.account.entryPoint,
+            entryPoint: this.cabClient.account.entryPoint,
             signerPrivateKey: sessionPrivateKey,
             approval: await serializePermissionAccount(sessionKeyAccountWithSig)
         }
 
-        const address = this.kernelClient.account.address
-        const chainId = toHex(this.kernelClient.chain.id)
+        const address = this.cabClient.account.address
+        const chainId = toHex(this.cabClient.chain.id)
 
         const mergedPermissions: SessionType = { ...createdPermissions }
 
@@ -620,5 +637,51 @@ export class KernelEIP1193Provider<
 
     private storeItemToStorage<T>(key: string, item: T) {
         this.storage.setItem(key, JSON.stringify(item))
+    }
+
+    private async sendUserOp(calls: Call[], repayTokensParam?: RepayToken[]) {
+        const _repayTokens = repayTokensParam || repayTokens
+
+        if (!this.cabClient || !this.cabClient.account) {
+            throw new Error('CABClient or account is not available');
+        }
+    
+        try {
+            // Prepare the user operation
+            const prepareUserOpFromCAB = await this.cabClient.prepareUserOperationRequestCAB({
+                account: this.cabClient.account,
+                transactions: calls,
+                repayTokens: _repayTokens
+            });
+    
+            const { userOperation, sponsorTokensInfo, repayTokensInfo } = prepareUserOpFromCAB;
+    
+            // Send the user operation
+            const userOpHash = await this.cabClient.sendUserOperationCAB({
+                userOperation: userOperation,
+                repayTokens: _repayTokens,
+            });
+    
+            // Create a bundler client to wait for the receipt
+            // const bundlerClient = createBundlerClient({
+            //     chain: this.cabClient.chain,
+            //     entryPoint: this.cabClient.account.entryPoint,
+            //     transport: http(this.cabClient.transport.url, { timeout: 60000 }),
+            // });
+    
+            console.log("userOpHash", userOpHash);
+    
+            // Emit an event or call a callback with the result
+            this.emit('userOperationSent', {
+                userOpHash,
+                sponsorTokensInfo,
+                repayTokensInfo
+            });
+    
+            return userOpHash;
+        } catch (error) {
+            console.error("Error in sendUserOp:", error);
+            throw error;
+        }
     }
 }
