@@ -14,7 +14,7 @@
     "@mantine/notifications": "^7.7.1",
     "@tabler/icons-react": "^3.11.0",
     "@tanstack/react-query": "^5.28.6",
-    "@zerodev/cab": "0.0.3",
+    "@zerodev/cab": "^0.0.4",
     "encoding": "^0.1.13",
     "next": "14.2.5",
     "permissionless": "^0.1.16",

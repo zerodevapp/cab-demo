@@ -1,4 +1,4 @@
-import { supportedChains, repayTokens } from "@/utils/constants";
+import { supportedChains, repayTokens, testErc20Address } from "@/utils/constants";
 import { useQuery } from '@tanstack/react-query';
 import { useCABClient } from "./useCABClient";
 
@@ -15,6 +15,7 @@ export function useCabBalance() {
       }
       return await cabClient.getCabBalance({
         address,
+        token: testErc20Address,
         repayTokens
       });
     },
