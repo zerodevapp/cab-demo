@@ -28,7 +28,7 @@ export default function SmartBalanceBlock({cab}: {cab: boolean}) {
       </Flex>
 
       <Stack gap="sm">
-        {isRepaySuccess && (
+        {/* {isRepaySuccess && (
           <BalanceItem
             chain={supportedChains[0].chain.name}
             logo={supportedChains[0].logo}
@@ -41,7 +41,7 @@ export default function SmartBalanceBlock({cab}: {cab: boolean}) {
             logo={supportedChains[1].logo}
             balance={formatEther(tokenBalanceSponsor || 0n)}
           />
-        )}
+        )} */}
         {cab && balance && (
           <BalanceItem
             chain="CAB"
