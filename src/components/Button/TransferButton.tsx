@@ -1,6 +1,5 @@
 import { Button, Tooltip } from "@mantine/core";
 import {
-  repayTokens,
   supportedChains,
   testErc20Address,
 } from "@/utils/constants";
@@ -11,12 +10,9 @@ import {
   useTokenBalance,
   useCabBalance,
   useModal,
-  usePrepareUserOperation,
-  useCABClient,
   useEoaAddress,
 } from "@/hooks";
 import { useMemo } from "react";
-import { parseAbi } from "viem";
 
 export function TransferButton({
   chainId,
@@ -31,8 +27,6 @@ export function TransferButton({
   const { switchChain } = useSwitchChain();
   const { address } = useEoaAddress();
   const { address: smartAccountAddress, chainId: currentChainId } = useAccount();
-  // const { data } = useCABClient({ chainId });
-  // const smartAccountAddress = data?.address;
   const { data: tokenBalance } = useTokenBalance({
     address: smartAccountAddress,
     chainId: chainId,
@@ -82,27 +76,7 @@ export function TransferButton({
                 args: [address, parseEther("0.01")],
               },
             ],
-            capabilities: {
-              cab: {
-                useCab: true,
-              },
-            },
           });
-
-          // write({
-          //   calls: [
-          //     {
-          //       to: testErc20Address,
-          //       value: 0n,
-          //       data: encodeFunctionData({
-          //         abi: erc20Abi,
-          //         functionName: "transfer",
-          //         args: [address, parseEther("0.01")],
-          //       }),
-          //     }
-          //   ],
-          //   repayTokens
-          // });
         }}
       >
         {`${chain.name}`}

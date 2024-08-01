@@ -25,15 +25,14 @@ import type {
 } from "permissionless/types"
 import type {
     Chain,
-    Client,
     EIP1193Parameters,
     EIP1193RequestFn,
     Hash,
     SendTransactionParameters,
     Transport,
 } from "viem"
-import { http, type Hex, isHex, toHex, type WalletClient, type Account } from "viem"
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts"
+import { invoiceManagerAbi } from "@/abis/invoiceManagerAbi";
+import { http, type Hex, isHex, toHex, type WalletClient, type Account, encodeFunctionData } from "viem"
 import type {
     GetCallsParams,
     GetCallsResult,
@@ -41,29 +40,39 @@ import type {
     PaymasterServiceCapability,
     SendCallsParams,
     SendCallsResult,
-    SessionType
 } from "./types"
 
 import { KernelLocalStorage } from "./utils/storage"
 import { type CABClient } from "@zerodev/cab"
 import type { SmartAccount } from "permissionless/accounts"
 import type { RepayToken, Call } from "../../types"
-import { repayTokens, supportedChains, testErc20Address } from "@/utils/constants";
-import { createClient, custom, walletActions, createPublicClient } from "viem";
+import { repayTokens, testErc20Address, getChain } from "@/utils/constants";
+import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
+import {
+    createClient, custom, walletActions, createPublicClient, parseAbi,
+    erc20Abi,
+} from "viem";
 import { walletClientToSmartAccountSigner, createSmartAccountClient } from "permissionless";
 import { signerToEcdsaKernelSmartAccount } from "permissionless/accounts";
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator";
 import { KERNEL_V3_0 } from "@zerodev/sdk/constants";
 import { getPublicRpc, getBundler, cabPaymasterUrl } from "@/utils/constants";
 import { createCABClient } from "@zerodev/cab"
+import {
+    invoiceManagerAddress,
+    cabPaymasterAddress,
+    testErc20VaultAddress,
+    vaultManagerAddress
+} from "@/utils/constants";
+import { parseEther } from "viem";
 
 const WALLET_CAPABILITIES_STORAGE_KEY = "WALLET_CAPABILITIES"
-const WALLET_PERMISSION_STORAGE_KEY = "WALLET_PERMISSION"
+// const WALLET_PERMISSION_STORAGE_KEY = "WALLET_PERMISSION"
 
 export class KernelEIP1193Provider<
     entryPoint extends EntryPoint
 > extends EventEmitter {
-    private readonly paymasterUrl?: string
+    private cabEnabled: boolean = false
     private readonly storage = new KernelLocalStorage("ZDWALLET")
     private cabClient: CABClient<
         entryPoint,
@@ -115,9 +124,9 @@ export class KernelEIP1193Provider<
                     paymasterService: {
                         supported: true
                     },
-                    cab: {
-                        supported: true
-                    },
+                    // auxiliaryFunds: {  // is cab considered aux funds?
+                    //     supported: true
+                    // },
                     permissions: {
                         supported: false
                     }
@@ -210,6 +219,8 @@ export class KernelEIP1193Provider<
         switch (method) {
             case "yi_getCabBalance":
                 return this.handleGetCabBalance()
+            case "yi_enableCAB":
+                return this.handleEnableCAB()
             case "eth_chainId":
                 return this.handleGetChainId()
             case "eth_requestAccounts":
@@ -405,7 +416,7 @@ export class KernelEIP1193Provider<
             throw new Error("Permissions not supported with kernel v2")
         }
 
-        if (capabilities?.cab?.useCab === true) {
+        if (this.cabEnabled === true) {
             const cabCalls = calls.map(call => ({
                 to: call.to || '0x',
                 data: call.data || '0x',
@@ -617,7 +628,7 @@ export class KernelEIP1193Provider<
         if (!this.cabClient || !this.cabClient.account) {
             throw new Error('CABClient or account is not available');
         }
-    
+
         try {
             // Prepare the user operation
             const prepareUserOpFromCAB = await this.cabClient.prepareUserOperationRequestCAB({
@@ -625,34 +636,86 @@ export class KernelEIP1193Provider<
                 transactions: calls,
                 repayTokens: _repayTokens
             });
-    
+
             const { userOperation, sponsorTokensInfo, repayTokensInfo } = prepareUserOpFromCAB;
-    
+
             // Send the user operation
             const userOpHash = await this.cabClient.sendUserOperationCAB({
                 userOperation: userOperation,
                 repayTokens: _repayTokens,
             });
-    
-            // Create a bundler client to wait for the receipt
-            // const bundlerClient = createBundlerClient({
-            //     chain: this.cabClient.chain,
-            //     entryPoint: this.cabClient.account.entryPoint,
-            //     transport: http(this.cabClient.transport.url, { timeout: 60000 }),
-            // });
-    
+
             console.log("userOpHash", userOpHash);
-    
-            // Emit an event or call a callback with the result
-            this.emit('userOperationSent', {
-                userOpHash,
-                sponsorTokensInfo,
-                repayTokensInfo
-            });
-    
+
             return userOpHash;
         } catch (error) {
             console.error("Error in sendUserOp:", error);
+            throw error;
+        }
+    }
+
+    private async handleEnableCAB(): Promise<Hex> {
+        const chainId = this.kernelClient.chain.id;
+        const accountAddress = this.kernelClient.account.address;
+        const currentChain = getChain(chainId);
+        const isRepay = currentChain.isRepay;
+
+        const amount = parseEther("0.3");
+
+        const txs: Call[] = [
+            {
+                to: invoiceManagerAddress,
+                data: encodeFunctionData({
+                    abi: invoiceManagerAbi,
+                    functionName: "registerPaymaster",
+                    args: [
+                        cabPaymasterAddress,
+                        cabPaymasterAddress,
+                        BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30) // now + 30 days
+                    ]
+                }),
+                value: 0n,
+            }
+        ];
+
+        if (isRepay) {
+            txs.push(
+                {
+                    to: testErc20Address,
+                    data: encodeFunctionData({
+                        abi: parseAbi(["function mint(address,uint256)"]),
+                        functionName: "mint",
+                        args: [accountAddress, amount]
+                    }),
+                    value: 0n,
+                },
+                {
+                    to: testErc20Address,
+                    data: encodeFunctionData({
+                        abi: erc20Abi,
+                        functionName: "approve",
+                        args: [vaultManagerAddress, amount],
+                    }),
+                    value: 0n
+                },
+                {
+                    to: vaultManagerAddress,
+                    data: encodeFunctionData({
+                        abi: vaultManagerAbi,
+                        functionName: "deposit",
+                        args: [testErc20Address, testErc20VaultAddress, amount, false]
+                    }),
+                    value: 0n
+                }
+            );
+        }
+
+        try {
+            const userOpHash = await this.sendCABUserOp(txs);
+            console.log("CAB enabled. UserOpHash:", userOpHash);
+            return userOpHash;
+        } catch (error) {
+            console.error("Failed to enable CAB:", error);
             throw error;
         }
     }
