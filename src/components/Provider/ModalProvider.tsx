@@ -6,7 +6,6 @@ import {
   useState,
 } from "react";
 import RegisterModal from "../Modal/RegisterModal";
-import CABModal from "../Modal/CABModal";
 import { RepayTokenInfo, SponsorTokenInfo } from "@/types";
 import { GetEntryPointVersion, UserOperation } from 'permissionless/types'
 import { type EntryPoint } from 'permissionless/types'
@@ -133,14 +132,6 @@ export function ModalProvider({ children }: ModalProviderProps) {
       <RegisterModal
         onClose={closeRegisterModal}
         open={registerModalOpen}
-      />
-      <CABModal 
-        onClose={closeCABModal}
-        open={cabModalOpen}
-        chainId={chainId}
-        sponsorTokensInfo={sponsorTokensInfo}
-        repayTokensInfo={repayTokensInfo}
-        userOperation={userOperation}
       />
     </ModalContext.Provider>
   );

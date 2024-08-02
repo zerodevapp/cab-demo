@@ -36,6 +36,19 @@ function RegisterPaymaster() {
   const [activeStep, setActiveStep] = useState(0);
   const { closeRegisterModal } = useModal();
   const { status, isRepayRegistered, isSponsorRegistered, isPending } = usePaymasterRegistered();
+  const { register: registerRepay2 } = useRegisterPaymaster({
+    chainId: supportedChains[0].id,
+    onSuccess: () => {
+      setActiveStep(1);
+      refetch();
+    }
+  });
+  const { register: registerSponsor2  } = useRegisterPaymaster({
+    chainId: supportedChains[1].id,
+    onSuccess: () => {
+      setActiveStep(2);
+    }
+  });
   const { refetch } = useCabBalance();
   const { register: registerRepay, isPending: isRepayPending } = useRegisterPaymaster({
     chainId: supportedChains[0].id,
@@ -54,11 +67,11 @@ function RegisterPaymaster() {
   const register = useCallback(async () => {
     try {
       if (!isRepayRegistered) {
-        await registerRepay();
+        await registerRepay2();
         setActiveStep(1);
       }
       if (!isSponsorRegistered) {
-        await registerSponsor();
+        await registerSponsor2();
         setActiveStep(2);
       }
     } catch (error) {
@@ -69,7 +82,7 @@ function RegisterPaymaster() {
       })
     }
       
-  }, [isRepayRegistered, isSponsorRegistered, registerRepay, registerSponsor])
+  }, [isRepayRegistered, isSponsorRegistered, registerRepay2, registerSponsor2])
 
   useEffect(() => {
     setActiveStep(status);

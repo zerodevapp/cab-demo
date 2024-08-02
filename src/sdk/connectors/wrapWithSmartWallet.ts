@@ -5,6 +5,7 @@ import {
     type KernelEIP1193Provider as KernelEIP1193ProviderType,
 } from "./KernelEIP1193Provider";
 import type { ZeroDevVersion } from "./types";
+import { numberToHex } from "viem";
 
 type ExplicitAny = any;
 interface SmartWalletConfig {
@@ -20,6 +21,27 @@ export const wrapWithSmartWallet = (
     return (config: ExplicitAny) => {
         const wallet = walletFunction(config);
         let kernelProvider: KernelEIP1193ProviderType<EntryPoint> | null;
+
+        const onChainChanged = async (chainId: number) => {
+            const chain = config.chains.find(
+                (c: ExplicitAny) => c.id === Number(chainId)
+            );
+            if (!chain) {
+                return;
+            }
+            try {
+                if (!kernelProvider) {
+                    throw new Error("Kernel provider not available");
+                }
+                await kernelProvider.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: numberToHex(chain.id) }],
+                })
+                return chain
+            } catch (error) {
+                console.error('Error switching chain:', error)
+            }
+        };
 
         return new Proxy(wallet, {
             set(target, prop, value, receiver) {
@@ -42,12 +64,14 @@ export const wrapWithSmartWallet = (
                         const connetedChain = chain ?? config.chains[0];
 
                         const provider = await target.getProvider();
-                        const targetAccounts = await target.getAccounts();
+
+                        (provider as any).on("chainChanged", (chainId: number) => {
+                            console.log('blake worked')
+                            onChainChanged(chainId);
+                        });
 
                         kernelProvider = await KernelEIP1193Provider.initFromProvider(
                             provider,
-                            [...targetAccounts],
-                            connetedChain
                         );
                         const accounts = (await kernelProvider.request({
                             method: "eth_requestAccounts",
@@ -83,18 +107,8 @@ export const wrapWithSmartWallet = (
                         if (target.switchChain) {
                             await target.switchChain(params);
                         }
-                        const provider = await target.getProvider();
-                        const targetAccounts = await target.getAccounts();
                         const chainId = params.chainId;
-                        const chain = config.chains.find(
-                            (c: ExplicitAny) => c.id === chainId
-                        );
-                        kernelProvider = await KernelEIP1193Provider.initFromProvider(
-                            provider,
-                            [...targetAccounts],
-                            chain
-                        );;
-                        return;
+                        return await onChainChanged(chainId);
                     };
                 }
 

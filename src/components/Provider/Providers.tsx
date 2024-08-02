@@ -19,7 +19,10 @@ export default function Providers({ children }: { children: ReactNode }) {
       [sepolia.id]: http(getPublicRpc(sepolia.id)),
       [polygonAmoy.id]: http(getPublicRpc(polygonAmoy.id)),
     },
-    connectors: [wrapWithSmartWallet(metaMask())],
+    connectors: [
+      wrapWithSmartWallet(metaMask(),
+    )
+    ],
     multiInjectedProviderDiscovery: false,
   });
   const queryClient = new QueryClient();

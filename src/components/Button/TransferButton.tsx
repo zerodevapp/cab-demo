@@ -1,11 +1,11 @@
 import { Button, Tooltip } from "@mantine/core";
-import {
-  supportedChains,
-  testErc20Address,
-} from "@/utils/constants";
+import { supportedChains, testErc20Address } from "@/utils/constants";
 import { erc20Abi, parseEther, encodeFunctionData } from "viem";
 import { useAccount, useSwitchChain } from "wagmi";
-import { useWriteContracts } from "wagmi/experimental";
+import {
+  useWriteContracts,
+  type UseWriteContractsParameters,
+} from "wagmi/experimental";
 import {
   useTokenBalance,
   useCabBalance,
@@ -24,31 +24,21 @@ export function TransferButton({
   const chain = (
     supportedChains.find((chain) => chain.id === chainId) ?? supportedChains[0]
   ).chain;
-  const { switchChain } = useSwitchChain();
+  const { switchChainAsync } = useSwitchChain();
   const { address } = useEoaAddress();
-  const { address: smartAccountAddress, chainId: currentChainId } = useAccount();
+  const { address: smartAccountAddress, chainId: currentChainId } =
+    useAccount();
+  console.log({ smartAccountAddress });
   const { data: tokenBalance } = useTokenBalance({
     address: smartAccountAddress,
     chainId: chainId,
   });
   const { data: cabBalance } = useCabBalance();
-  const { openCABModal } = useModal();
   const { writeContracts, isPending, error } = useWriteContracts();
   console.log({ error });
 
-  // const { write, isPending } = usePrepareUserOperation({
-  //   chainId,
-  //   onSuccess: ({ userOperation, repayTokensInfo, sponsorTokensInfo }) => {
-  //     openCABModal?.({
-  //       chainId,
-  //       sponsorTokensInfo,
-  //       repayTokensInfo,
-  //       userOperation
-  //     })
-  //   }
-  // })
-
   const disabled = useMemo(() => {
+    console.log({ tokenBalance, cabBalance, cab });
     return cab
       ? (cabBalance ?? 0n) < parseEther("0.01")
       : (tokenBalance ?? 0n) < parseEther("0.01");
@@ -64,9 +54,9 @@ export function TransferButton({
           if (!address) return;
 
           if (currentChainId !== chainId) {
-            await switchChain({ chainId });
+            await switchChainAsync({ chainId });
           }
-          // todo: need to switch chains before this or it still gets sent to sepolia
+
           writeContracts({
             contracts: [
               {

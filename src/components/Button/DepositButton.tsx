@@ -1,19 +1,24 @@
 import { Button } from "@mantine/core";
-import { supportedChains, testErc20Address, vaultManagerAddress, testErc20VaultAddress } from "@/utils/constants";
-import { useCABClient, useCabBalance } from "@/hooks";
+import {
+  testErc20Address,
+  vaultManagerAddress,
+  testErc20VaultAddress,
+} from "@/utils/constants";
+import { useCabBalance } from "@/hooks";
 import { useMemo, useCallback, useState } from "react";
-import { parseEther, encodeFunctionData, parseAbi, erc20Abi } from "viem";
+import { parseEther, parseAbi, erc20Abi } from "viem";
 import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
 import { notifications } from "@mantine/notifications";
+import { useAccount } from "wagmi";
+import { useWriteContracts } from "wagmi/experimental";
 
 export function DepositButton() {
   const [isDepositPending, setIsDepositPending] = useState(false);
-  const chainId = supportedChains[0].id;
   const { refetch } = useCabBalance();
-  const { data, isPending } = useCABClient({ chainId });
-  const smartAccountClient = data?.smartAccountClientVerifyingPaymaster;
-  const accountAddress = data?.address;
-  const disabled = isPending || !smartAccountClient || !accountAddress || !refetch;
+  const { writeContracts, isPending } = useWriteContracts();
+  console.log("isPending ", isPending);
+  const { address: accountAddress } = useAccount();
+  const disabled = !accountAddress || !refetch;
 
   const txs = useMemo(() => {
     if (!accountAddress) return [];
@@ -21,43 +26,31 @@ export function DepositButton() {
 
     return [
       {
-        to: testErc20Address,
-        data: encodeFunctionData({
-          abi: parseAbi(["function mint(address,uint256)"]),
-          functionName: "mint",
-          args: [accountAddress, amount]
-        }),
-        value: 0n,
+        address: testErc20Address,
+        abi: parseAbi(["function mint(address,uint256)"]),
+        functionName: "mint",
+        args: [accountAddress, amount],
       },
       {
-        to: testErc20Address,
-        data: encodeFunctionData({
-          abi: erc20Abi,
-          functionName: "approve",
-          args: [vaultManagerAddress, amount],
-        }),
-        value: 0n
+        address: testErc20Address,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [vaultManagerAddress, amount],
       },
       {
-        to: vaultManagerAddress,
-        data: encodeFunctionData({
-          abi: vaultManagerAbi,
-          functionName: "deposit",
-          args: [testErc20Address, testErc20VaultAddress, amount, false]
-        }),
-        value: 0n
-      } 
+        address: vaultManagerAddress,
+        abi: vaultManagerAbi,
+        functionName: "deposit",
+        args: [testErc20Address, testErc20VaultAddress, amount, false],
+      },
     ];
   }, [accountAddress]);
 
   const deposit = useCallback(async () => {
-    if (!smartAccountClient || !refetch) return;
+    if (!refetch) return;
     try {
       setIsDepositPending(true);
-      await smartAccountClient.sendTransactions({
-        account: smartAccountClient.account,
-        transactions: txs
-      });
+      await writeContracts({ contracts: txs });
       refetch();
       notifications.show({
         color: "green",
@@ -67,7 +60,7 @@ export function DepositButton() {
     } finally {
       setIsDepositPending(false);
     }
-  }, [smartAccountClient, txs, refetch]);
+  }, [writeContracts, txs, refetch]);
 
   return (
     <Button

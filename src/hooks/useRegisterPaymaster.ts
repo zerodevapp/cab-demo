@@ -1,117 +1,50 @@
-import { useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { 
-  type Hex,
-  encodeFunctionData,
-  parseAbi,
-  parseEther,
-  erc20Abi,
-} from 'viem';
-import {
-  vaultManagerAddress,
-  getChain,
-  cabPaymasterAddress,
-  invoiceManagerAddress,
-  testErc20Address,
-  testErc20VaultAddress,
-} from "@/utils/constants";
-import { useChainId, useSwitchChain } from "wagmi";
-import { invoiceManagerAbi } from "@/abis/invoiceManagerAbi";
-import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
-import { useCABClient } from "./useCABClient";
+import { useWalletClient, useChainId, useSwitchChain } from "wagmi";
+import type { Hex } from 'viem';
 
-export type UseRegisterPaymasterParams = {  
-  chainId: number;
-  onSuccess?: () => void;
+export type UseRegisterPaymasterParams = {
+    chainId: number;
+    onSuccess?: () => void;
 }
 
 export function useRegisterPaymaster({
-  chainId,
-  onSuccess,
+    chainId,
+    onSuccess,
 }: UseRegisterPaymasterParams) {
-  const connectedChainId = useChainId(); 
-  const { switchChainAsync } = useSwitchChain();
-  const selectedChain = getChain(chainId);
-  const isRepay = selectedChain.isRepay;
+    const { data: walletClient, refetch: refetchWalletClient } = useWalletClient();
+    const connectedChainId = useChainId();
+    const { switchChainAsync } = useSwitchChain();
 
-  const { data } = useCABClient({ chainId });
-  const smartAccountClient = data?.smartAccountClientVerifyingPaymaster;
-  const accountAddress = data?.address;
+    const mutation = useMutation<Hex, Error, void>({
+        mutationKey: ['registerPaymaster', chainId],
+        mutationFn: async () => {
+            if (!walletClient) {
+                throw new Error("Wallet client not available");
+            }
+            if (connectedChainId !== chainId) {
+                await switchChainAsync?.({ chainId });
+            }
+            const { data: updatedWalletClient } = await refetchWalletClient();
+            if (!updatedWalletClient) {
+                throw new Error("Wallet client not available");
+            }
+            return await updatedWalletClient.transport.request({
+                method: "yi_enableCAB",
+                params: []
+            }) as Hex;
+        },
+        onSuccess: (txHash) => {
+            console.log("CAB enabled. TxHash:", txHash);
+            onSuccess?.();
+        },
+        onError: (error) => {
+            console.error("Failed to enable CAB:", error);
+        },
+    });
 
-  const txs = useMemo(() => {
-    if (!accountAddress) return [];
-
-    const amount = parseEther("0.3");
-    const commonTx = {
-      to: invoiceManagerAddress,
-      data: encodeFunctionData({
-        abi: invoiceManagerAbi,
-        functionName: "registerPaymaster",
-        args: [
-          cabPaymasterAddress,
-          cabPaymasterAddress,
-          BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30) // now + 30 days
-        ]
-      }),
-      value: 0n,
+    return {
+        hash: mutation.data,
+        register: mutation.mutateAsync,
+        isPending: mutation.isPending || !walletClient,
     };
-
-    if (!isRepay) return [commonTx];
-
-    return [
-      commonTx,
-      {
-        to: testErc20Address,
-        data: encodeFunctionData({
-          abi: parseAbi(["function mint(address,uint256)"]),
-          functionName: "mint",
-          args: [accountAddress, amount]
-        }),
-        value: 0n,
-      },
-      {
-        to: testErc20Address,
-        data: encodeFunctionData({
-          abi: erc20Abi,
-          functionName: "approve",
-          args: [vaultManagerAddress, amount],
-        }),
-        value: 0n
-      },
-      {
-        to: vaultManagerAddress,
-        data: encodeFunctionData({
-          abi: vaultManagerAbi,
-          functionName: "deposit",
-          args: [testErc20Address, testErc20VaultAddress, amount, false]
-        }),
-        value: 0n
-      } 
-    ];
-  }, [isRepay, accountAddress]);
-
-  const mutation = useMutation<Hex, Error, void>({
-    mutationFn: async () => {
-      if (!smartAccountClient || txs.length === 0) {
-        throw new Error("Client or transactions not available");
-      }
-      if (connectedChainId !== chainId) {
-        await switchChainAsync?.({ chainId });
-      }
-      return await smartAccountClient.sendTransactions({ transactions: txs });
-    },
-    onSuccess: (txHash) => {
-      console.log("txHash", txHash);
-      onSuccess?.();
-    },
-    onError: (error) => {
-      console.error("Transaction failed:", error);
-    },
-  });
-
-  return {
-    hash: mutation.data,
-    register: mutation.mutateAsync,
-    isPending: mutation.isPending || !smartAccountClient || txs.length === 0,
-  };
 }

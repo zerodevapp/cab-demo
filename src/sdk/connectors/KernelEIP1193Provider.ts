@@ -46,7 +46,8 @@ import { KernelLocalStorage } from "./utils/storage"
 import { type CABClient } from "@zerodev/cab"
 import type { SmartAccount } from "permissionless/accounts"
 import type { RepayToken, Call } from "../../types"
-import { repayTokens, testErc20Address, getChain } from "@/utils/constants";
+import { getChain } from "./utils/chain"
+import { repayTokens, testErc20Address } from "@/utils/constants";
 import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
 import {
     createClient, custom, walletActions, createPublicClient, parseAbi,
@@ -56,7 +57,7 @@ import { walletClientToSmartAccountSigner, createSmartAccountClient } from "perm
 import { signerToEcdsaKernelSmartAccount } from "permissionless/accounts";
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator";
 import { KERNEL_V3_0 } from "@zerodev/sdk/constants";
-import { getPublicRpc, getBundler, cabPaymasterUrl } from "@/utils/constants";
+import { getPublicRpc, getBundler, cabPaymasterUrl, getPaymaster } from "@/utils/constants";
 import { createCABClient } from "@zerodev/cab"
 import {
     invoiceManagerAddress,
@@ -72,7 +73,9 @@ const WALLET_CAPABILITIES_STORAGE_KEY = "WALLET_CAPABILITIES"
 export class KernelEIP1193Provider<
     entryPoint extends EntryPoint
 > extends EventEmitter {
+    // TODO make this dynamic
     private cabEnabled: boolean = false
+    private provider: any
     private readonly storage = new KernelLocalStorage("ZDWALLET")
     private cabClient: CABClient<
         entryPoint,
@@ -90,7 +93,8 @@ export class KernelEIP1193Provider<
 
     constructor(
         cabClient: CABClient<entryPoint, Transport, Chain, SmartAccount<entryPoint>>,
-        kernelClient: KernelAccountClient<entryPoint>
+        kernelClient: KernelAccountClient<entryPoint>,
+        provider?: any
     ) {
         super()
 
@@ -108,6 +112,7 @@ export class KernelEIP1193Provider<
         }
 
         this.cabClient = cabClient
+        this.provider = provider
         this.kernelClient = kernelClient as KernelAccountClient<
             entryPoint,
             Transport,
@@ -134,19 +139,31 @@ export class KernelEIP1193Provider<
             }
         }
         this.storeItemToStorage(WALLET_CAPABILITIES_STORAGE_KEY, capabilities)
-        this.bundlerClient = this.cabClient.extend(
-            bundlerActions(this.cabClient.account.entryPoint)
+        this.bundlerClient = this.kernelClient.extend(
+            bundlerActions(this.kernelClient.account.entryPoint)
         )
+
+        this.checkCabRegistration().then(isRegistered => {
+            this.cabEnabled = isRegistered
+            console.log('CAB enabled1 :', this.cabEnabled)
+        })
     }
 
     static async initFromProvider(
         provider: any,
-        accounts: `0x${string}`[],
-        chain: Chain,
     ): Promise<KernelEIP1193Provider<EntryPoint>> {
+        const accounts = (await provider.request({
+            method: "eth_requestAccounts",
+            params: [],
+        })) as `0x${string}`[];
+        const chainId = (await provider.request({
+            method: "eth_chainId",
+            params: [],
+        })) as `0x${string}`;
+        const chain = getChain(Number(chainId)).chain
         const walletClient = createClient({
             account: accounts[0],
-            chain: chain,
+            chain,
             name: "Connector Client",
             transport: (opts) => custom(provider)({ ...opts, retryCount: 0 }),
         }).extend(walletActions) as WalletClient<Transport, Chain, Account>;
@@ -204,7 +221,8 @@ export class KernelEIP1193Provider<
 
         return new KernelEIP1193Provider(
             cabClient,
-            kernelClient as KernelAccountClient<EntryPoint>
+            kernelClient as KernelAccountClient<EntryPoint>,
+            provider
         );
     }
 
@@ -285,7 +303,7 @@ export class KernelEIP1193Provider<
             case "wallet_switchEthereumChain":
                 return this.handleSwitchEthereumChain()
             default:
-                return this.cabClient.transport.request({ method, params })
+                return this.kernelClient.transport.request({ method, params })
         }
     }
 
@@ -394,7 +412,109 @@ export class KernelEIP1193Provider<
     }
 
     private async handleSwitchEthereumChain() {
-        throw new Error("Not implemented.")
+        const accounts = (await this.provider.request({
+            method: "eth_requestAccounts",
+            params: [],
+        })) as `0x${string}`[];
+        const chainId = (await this.provider.request({
+            method: "eth_chainId",
+            params: [],
+        })) as `0x${string}`;
+        const chain = getChain(Number(chainId)).chain
+        const walletClient = createClient({
+            account: accounts[0],
+            chain,
+            name: "Connector Client",
+            transport: (opts) => custom(this.provider)({ ...opts, retryCount: 0 }),
+        }).extend(walletActions) as WalletClient<Transport, Chain, Account>;
+
+        const publicClient = createPublicClient({
+            transport: http(getPublicRpc(chain.id)),
+        });
+
+        const smartAccount = await signerToEcdsaKernelSmartAccount(publicClient, {
+            entryPoint: ENTRYPOINT_ADDRESS_V07,
+            signer: walletClientToSmartAccountSigner(walletClient),
+        });
+
+        const smartAccountClient = createSmartAccountClient({
+            account: smartAccount,
+            entryPoint: ENTRYPOINT_ADDRESS_V07,
+            chain: chain,
+            bundlerTransport: http(getBundler(chain.id)),
+            middleware: {
+                sponsorUserOperation: ({ userOperation, entryPoint }) => {
+                    return {
+                        callGasLimit: 0n,
+                        verificationGasLimit: 0n,
+                        preVerificationGas: 0n,
+                    } as any;
+                },
+            },
+        });
+
+        const cabClient = createCABClient(smartAccountClient, {
+            transport: http(cabPaymasterUrl, { timeout: 30000 }),
+            entryPoint: ENTRYPOINT_ADDRESS_V07,
+        }) as CABClient<EntryPoint, Transport, Chain, SmartAccount<EntryPoint>>;
+
+        const ecdsaValidator = await signerToEcdsaValidator(publicClient, {
+            entryPoint: ENTRYPOINT_ADDRESS_V07,
+            kernelVersion: KERNEL_V3_0,
+            signer: walletClientToSmartAccountSigner(walletClient),
+        });
+
+        const kernelAccount = await createKernelAccount(publicClient, {
+            entryPoint: ENTRYPOINT_ADDRESS_V07,
+            kernelVersion: KERNEL_V3_0,
+            plugins: {
+                sudo: ecdsaValidator,
+            },
+        });
+
+        const kernelClient = createKernelAccountClient({
+            account: kernelAccount,
+            chain: chain,
+            entryPoint: ENTRYPOINT_ADDRESS_V07,
+            bundlerTransport: http(getBundler(chain.id)),
+        })
+
+        this.kernelClient = kernelClient as unknown as KernelAccountClient<
+            entryPoint,
+            Transport,
+            Chain,
+            KernelSmartAccount<entryPoint>
+        >
+        this.cabClient = cabClient as unknown as CABClient<
+            entryPoint,
+            Transport,
+            Chain,
+            SmartAccount<entryPoint>
+        >
+
+        this.cabEnabled = await this.checkCabRegistration()
+
+        return chain;
+    }
+
+    private async checkCabRegistration(): Promise<boolean> {
+        try {
+            const publicClient = createPublicClient({
+                transport: http(getPublicRpc(this.cabClient.chain.id)),
+            });
+
+            const result = await publicClient.readContract({
+                address: invoiceManagerAddress,
+                abi: invoiceManagerAbi,
+                functionName: "cabPaymasters",
+                args: [this.cabClient.account.address],
+            })
+
+            return result && result[0] === cabPaymasterAddress
+        } catch (error) {
+            console.error("Error checking CAB registration:", error)
+            return false
+        }
     }
 
     private async handleWalletSendcalls(
@@ -711,12 +831,29 @@ export class KernelEIP1193Provider<
         }
 
         try {
-            const userOpHash = await this.sendCABUserOp(txs);
-            console.log("CAB enabled. UserOpHash:", userOpHash);
-            return userOpHash;
+            const sendCallsParams: SendCallsParams = {
+                calls: txs.map(tx => ({
+                    ...tx,
+                    value: tx.value ? toHex(tx.value) : undefined
+                })),
+                from: accountAddress,
+                chainId: toHex(chainId),
+                version: "1.0",
+                capabilities: {
+                    paymasterService: {
+                        url: getPaymaster(chainId)
+                    }
+                }
+            };
+
+            const result = await this.handleWalletSendcalls([sendCallsParams]);
+            console.log("CAB enabled. UserOpHash:", result);
+            return result as Hex;
         } catch (error) {
             console.error("Failed to enable CAB:", error);
             throw error;
+        } finally {
+            this.cabEnabled = true
         }
     }
 }
