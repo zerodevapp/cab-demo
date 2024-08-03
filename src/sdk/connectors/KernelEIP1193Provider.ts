@@ -68,12 +68,10 @@ import {
 import { parseEther } from "viem";
 
 const WALLET_CAPABILITIES_STORAGE_KEY = "WALLET_CAPABILITIES"
-// const WALLET_PERMISSION_STORAGE_KEY = "WALLET_PERMISSION"
 
 export class KernelEIP1193Provider<
     entryPoint extends EntryPoint
 > extends EventEmitter {
-    // TODO make this dynamic
     private cabEnabled: boolean = false
     private provider: any
     private readonly storage = new KernelLocalStorage("ZDWALLET")
@@ -145,7 +143,6 @@ export class KernelEIP1193Provider<
 
         this.checkCabRegistration().then(isRegistered => {
             this.cabEnabled = isRegistered
-            console.log('CAB enabled1 :', this.cabEnabled)
         })
     }
 
@@ -493,6 +490,9 @@ export class KernelEIP1193Provider<
         >
 
         this.cabEnabled = await this.checkCabRegistration()
+        this.bundlerClient = this.kernelClient.extend(
+            bundlerActions(this.kernelClient.account.entryPoint)
+        )
 
         return chain;
     }
@@ -536,7 +536,7 @@ export class KernelEIP1193Provider<
             throw new Error("Permissions not supported with kernel v2")
         }
 
-        if (this.cabEnabled === true) {
+        if (this.cabEnabled === true && !capabilities?.paymasterService?.url) {
             const cabCalls = calls.map(call => ({
                 to: call.to || '0x',
                 data: call.data || '0x',
@@ -765,8 +765,6 @@ export class KernelEIP1193Provider<
                 repayTokens: _repayTokens,
             });
 
-            console.log("userOpHash", userOpHash);
-
             return userOpHash;
         } catch (error) {
             console.error("Error in sendUserOp:", error);
@@ -847,7 +845,6 @@ export class KernelEIP1193Provider<
             };
 
             const result = await this.handleWalletSendcalls([sendCallsParams]);
-            console.log("CAB enabled. UserOpHash:", result);
             return result as Hex;
         } catch (error) {
             console.error("Failed to enable CAB:", error);

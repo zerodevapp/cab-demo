@@ -6,6 +6,7 @@ import {
 } from "./KernelEIP1193Provider";
 import type { ZeroDevVersion } from "./types";
 import { numberToHex } from "viem";
+import type { Chain } from "viem";
 
 type ExplicitAny = any;
 interface SmartWalletConfig {
@@ -22,7 +23,7 @@ export const wrapWithSmartWallet = (
         const wallet = walletFunction(config);
         let kernelProvider: KernelEIP1193ProviderType<EntryPoint> | null;
 
-        const onChainChanged = async (chainId: number) => {
+        const onChainChanged = async (chainId: number): Promise<Chain | undefined> => {
             const chain = config.chains.find(
                 (c: ExplicitAny) => c.id === Number(chainId)
             );
@@ -66,7 +67,6 @@ export const wrapWithSmartWallet = (
                         const provider = await target.getProvider();
 
                         (provider as any).on("chainChanged", (chainId: number) => {
-                            console.log('blake worked')
                             onChainChanged(chainId);
                         });
 

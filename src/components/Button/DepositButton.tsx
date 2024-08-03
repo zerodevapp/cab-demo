@@ -1,23 +1,35 @@
+import { useEffect } from "react";
 import { Button } from "@mantine/core";
 import {
   testErc20Address,
   vaultManagerAddress,
   testErc20VaultAddress,
+  getPaymaster,
+  supportedChains,
 } from "@/utils/constants";
 import { useCabBalance } from "@/hooks";
 import { useMemo, useCallback, useState } from "react";
 import { parseEther, parseAbi, erc20Abi } from "viem";
 import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
 import { notifications } from "@mantine/notifications";
-import { useAccount } from "wagmi";
-import { useWriteContracts } from "wagmi/experimental";
+import { useAccount, useSwitchChain } from "wagmi";
+import { useWriteContracts, useCallsStatus } from "wagmi/experimental";
 
 export function DepositButton() {
   const [isDepositPending, setIsDepositPending] = useState(false);
   const { refetch } = useCabBalance();
-  const { writeContracts, isPending } = useWriteContracts();
-  console.log("isPending ", isPending);
-  const { address: accountAddress } = useAccount();
+  const { writeContracts, data: id } = useWriteContracts();
+  const { switchChainAsync } = useSwitchChain();
+  const { data: callsStatus, refetch: refetchCallsStatus } = useCallsStatus({
+    id: id as string,
+    query: {
+      enabled: !!id,
+      // Poll every 2 seconds until the calls are confirmed
+      refetchInterval: (data) =>
+        data.state.data?.status === "CONFIRMED" ? false : 2000,
+    },
+  });
+  const { address: accountAddress, chainId: currentChainId } = useAccount();
   const disabled = !accountAddress || !refetch;
 
   const txs = useMemo(() => {
@@ -46,21 +58,43 @@ export function DepositButton() {
     ];
   }, [accountAddress]);
 
+  useEffect(() => {
+    console.log("callsStatus", callsStatus?.status);
+    if (callsStatus?.status === "CONFIRMED") {
+      refetchCallsStatus();
+      setTimeout(() => {
+        refetch();
+        setIsDepositPending(false);
+        notifications.show({
+          color: "green",
+          message: "Deposit Success",
+        });
+      }, 1000);
+    }
+  }, [callsStatus?.status, refetch, refetchCallsStatus]);
+
   const deposit = useCallback(async () => {
     if (!refetch) return;
     try {
       setIsDepositPending(true);
-      await writeContracts({ contracts: txs });
-      refetch();
-      notifications.show({
-        color: "green",
-        message: "Deposit Success",
+
+      if (currentChainId !== supportedChains[0].id) {
+        await switchChainAsync({ chainId: supportedChains[0].id });
+      }
+
+      const paymasterUrl = getPaymaster(supportedChains[0].id);
+      writeContracts({
+        contracts: txs,
+        capabilities: {
+          paymasterService: {
+            url: paymasterUrl,
+          },
+        },
       });
     } catch (error) {
-    } finally {
-      setIsDepositPending(false);
+      console.error(error);
     }
-  }, [writeContracts, txs, refetch]);
+  }, [writeContracts, txs, refetch, switchChainAsync, currentChainId]);
 
   return (
     <Button
