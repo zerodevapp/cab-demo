@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useWalletClient, useChainId, useSwitchChain } from "wagmi";
+import { getPaymaster } from "@/utils/constants";
 import type { Hex } from 'viem';
 
 export type UseRegisterPaymasterParams = {
@@ -30,7 +31,7 @@ export function useRegisterPaymaster({
             }
             return await updatedWalletClient.transport.request({
                 method: "yi_enableCAB",
-                params: []
+                params: [getPaymaster(chainId)]
             }) as Hex;
         },
         onSuccess: (txHash) => {

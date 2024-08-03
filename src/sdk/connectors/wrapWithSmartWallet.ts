@@ -4,20 +4,18 @@ import {
     KernelEIP1193Provider,
     type KernelEIP1193Provider as KernelEIP1193ProviderType,
 } from "./KernelEIP1193Provider";
-import type { ZeroDevVersion } from "./types";
 import { numberToHex } from "viem";
 import type { Chain } from "viem";
+import type { ChainConfig } from "./utils/chain";
 
 type ExplicitAny = any;
 interface SmartWalletConfig {
-    projectId: string;
-    version: ZeroDevVersion;
-    paymasterUrl: string;
+    chains: ChainConfig[];
 }
 
 export const wrapWithSmartWallet = (
     walletFunction: CreateConnectorFn,
-    configOptions?: SmartWalletConfig,
+    configOptions: SmartWalletConfig,
 ): CreateConnectorFn => {
     return (config: ExplicitAny) => {
         const wallet = walletFunction(config);
@@ -70,8 +68,14 @@ export const wrapWithSmartWallet = (
                             onChainChanged(chainId);
                         });
 
+                        const chainConfig = configOptions?.chains.find((c) => c.id === connetedChain.id)
+
+                        if (!chainConfig) {
+                            throw new Error("Chain config not found");
+                        }
                         kernelProvider = await KernelEIP1193Provider.initFromProvider(
                             provider,
+                            configOptions.chains
                         );
                         const accounts = (await kernelProvider.request({
                             method: "eth_requestAccounts",

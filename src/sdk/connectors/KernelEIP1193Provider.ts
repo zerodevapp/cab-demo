@@ -43,11 +43,10 @@ import type {
 } from "./types"
 
 import { KernelLocalStorage } from "./utils/storage"
-import { type CABClient } from "@zerodev/cab"
+import { type CABClient, createCABClient } from "@zerodev/cab"
 import type { SmartAccount } from "permissionless/accounts"
 import type { RepayToken, Call } from "../../types"
 import { getChain } from "./utils/chain"
-import { repayTokens, testErc20Address } from "@/utils/constants";
 import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
 import {
     createClient, custom, walletActions, createPublicClient, parseAbi,
@@ -57,14 +56,16 @@ import { walletClientToSmartAccountSigner, createSmartAccountClient } from "perm
 import { signerToEcdsaKernelSmartAccount } from "permissionless/accounts";
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator";
 import { KERNEL_V3_0 } from "@zerodev/sdk/constants";
-import { getPublicRpc, getBundler, cabPaymasterUrl, getPaymaster } from "@/utils/constants";
-import { createCABClient } from "@zerodev/cab"
+import { getPublicRpc, ChainConfig } from "./utils/chain"
 import {
+    cabPaymasterUrl,
     invoiceManagerAddress,
     cabPaymasterAddress,
     testErc20VaultAddress,
-    vaultManagerAddress
-} from "@/utils/constants";
+    vaultManagerAddress,
+    repayTokens,
+    testErc20Address,
+} from "./utils/constants";
 import { parseEther } from "viem";
 
 const WALLET_CAPABILITIES_STORAGE_KEY = "WALLET_CAPABILITIES"
@@ -72,6 +73,7 @@ const WALLET_CAPABILITIES_STORAGE_KEY = "WALLET_CAPABILITIES"
 export class KernelEIP1193Provider<
     entryPoint extends EntryPoint
 > extends EventEmitter {
+    private chains: ChainConfig[];
     private cabEnabled: boolean = false
     private provider: any
     private readonly storage = new KernelLocalStorage("ZDWALLET")
@@ -92,7 +94,8 @@ export class KernelEIP1193Provider<
     constructor(
         cabClient: CABClient<entryPoint, Transport, Chain, SmartAccount<entryPoint>>,
         kernelClient: KernelAccountClient<entryPoint>,
-        provider?: any
+        provider: any,
+        chains: ChainConfig[]
     ) {
         super()
 
@@ -111,6 +114,7 @@ export class KernelEIP1193Provider<
 
         this.cabClient = cabClient
         this.provider = provider
+        this.chains = chains
         this.kernelClient = kernelClient as KernelAccountClient<
             entryPoint,
             Transport,
@@ -148,6 +152,7 @@ export class KernelEIP1193Provider<
 
     static async initFromProvider(
         provider: any,
+        chains: ChainConfig[]
     ): Promise<KernelEIP1193Provider<EntryPoint>> {
         const accounts = (await provider.request({
             method: "eth_requestAccounts",
@@ -157,6 +162,10 @@ export class KernelEIP1193Provider<
             method: "eth_chainId",
             params: [],
         })) as `0x${string}`;
+        const chainConfig = chains.find((c) => c.id === Number(chainId))
+        if (!chainConfig) {
+            throw new Error("Chain config not found");
+        }
         const chain = getChain(Number(chainId)).chain
         const walletClient = createClient({
             account: accounts[0],
@@ -166,7 +175,7 @@ export class KernelEIP1193Provider<
         }).extend(walletActions) as WalletClient<Transport, Chain, Account>;
 
         const publicClient = createPublicClient({
-            transport: http(getPublicRpc(chain.id)),
+            transport: http(chain.rpcUrls.default.http[0]),
         });
 
         const smartAccount = await signerToEcdsaKernelSmartAccount(publicClient, {
@@ -178,9 +187,9 @@ export class KernelEIP1193Provider<
             account: smartAccount,
             entryPoint: ENTRYPOINT_ADDRESS_V07,
             chain: chain,
-            bundlerTransport: http(getBundler(chain.id)),
+            bundlerTransport: http(chainConfig.bundlerRpc),
             middleware: {
-                sponsorUserOperation: ({ userOperation, entryPoint }) => {
+                sponsorUserOperation: () => {
                     return {
                         callGasLimit: 0n,
                         verificationGasLimit: 0n,
@@ -213,13 +222,14 @@ export class KernelEIP1193Provider<
             account: kernelAccount,
             chain: chain,
             entryPoint: ENTRYPOINT_ADDRESS_V07,
-            bundlerTransport: http(getBundler(chain.id)),
+            bundlerTransport: http(chainConfig.bundlerRpc),
         });
 
         return new KernelEIP1193Provider(
             cabClient,
             kernelClient as KernelAccountClient<EntryPoint>,
-            provider
+            provider,
+            chains
         );
     }
 
@@ -235,22 +245,14 @@ export class KernelEIP1193Provider<
             case "yi_getCabBalance":
                 return this.handleGetCabBalance()
             case "yi_enableCAB":
-                return this.handleEnableCAB()
+                const [paymasterUrl] = params as [string];
+                return this.handleEnableCAB(paymasterUrl)
             case "eth_chainId":
                 return this.handleGetChainId()
             case "eth_requestAccounts":
                 return this.handleEthRequestAccounts()
             case "eth_accounts":
                 return this.handleEthAccounts()
-            case "eth_sendTransaction": {
-                const [tx] = params as [SendTransactionParameters];
-                const call: Call = {
-                    to: tx.to || "0x",
-                    data: tx.data || '0x',
-                    value: tx.value ? BigInt(tx.value) : 0n
-                };
-                return this.sendCABUserOp([call]);
-            }
             // case "eth_sendTransaction": {
             //     const p = (params as any[])[0];
             //     const capabilities: { paymasterService?: { url: string } } = {};
@@ -282,12 +284,6 @@ export class KernelEIP1193Provider<
             case "wallet_getCapabilities":
                 return this.handleWalletCapabilities()
             case "wallet_sendCalls":
-                const [sendCallsParams] = params as [SendCallsParams];
-                // return this.sendCABUserOp(sendCallsParams.calls.map(call => ({
-                //     to: call.to || '0x',
-                //     data: call.data || '0x',
-                //     value: call.value ? BigInt(call.value) : 0n
-                // })));
                 return this.handleWalletSendcalls(params as [SendCallsParams])
             case "wallet_getCallsStatus":
                 return this.handleWalletGetCallStatus(
@@ -418,6 +414,10 @@ export class KernelEIP1193Provider<
             params: [],
         })) as `0x${string}`;
         const chain = getChain(Number(chainId)).chain
+        const chainConfig = this.chains.find((c) => c.id === chain.id)
+        if (!chainConfig) {
+            throw new Error("Chain config not found");
+        }
         const walletClient = createClient({
             account: accounts[0],
             chain,
@@ -438,7 +438,7 @@ export class KernelEIP1193Provider<
             account: smartAccount,
             entryPoint: ENTRYPOINT_ADDRESS_V07,
             chain: chain,
-            bundlerTransport: http(getBundler(chain.id)),
+            bundlerTransport: http(chainConfig.bundlerRpc),
             middleware: {
                 sponsorUserOperation: ({ userOperation, entryPoint }) => {
                     return {
@@ -473,7 +473,7 @@ export class KernelEIP1193Provider<
             account: kernelAccount,
             chain: chain,
             entryPoint: ENTRYPOINT_ADDRESS_V07,
-            bundlerTransport: http(getBundler(chain.id)),
+            bundlerTransport: http(chainConfig.bundlerRpc),
         })
 
         this.kernelClient = kernelClient as unknown as KernelAccountClient<
@@ -772,7 +772,7 @@ export class KernelEIP1193Provider<
         }
     }
 
-    private async handleEnableCAB(): Promise<Hex> {
+    private async handleEnableCAB(paymasterUrl: string): Promise<Hex> {
         const chainId = this.kernelClient.chain.id;
         const accountAddress = this.kernelClient.account.address;
         const currentChain = getChain(chainId);
@@ -839,7 +839,7 @@ export class KernelEIP1193Provider<
                 version: "1.0",
                 capabilities: {
                     paymasterService: {
-                        url: getPaymaster(chainId)
+                        url: paymasterUrl
                     }
                 }
             };

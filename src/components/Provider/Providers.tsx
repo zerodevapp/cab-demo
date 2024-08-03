@@ -1,5 +1,5 @@
 "use client";
-import { getPublicRpc } from "@/utils/constants";
+import { getPublicRpc, getBundler } from "@/utils/constants";
 import { MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
 import { Notifications } from "@mantine/notifications";
@@ -10,7 +10,7 @@ import { injected } from "wagmi/connectors";
 import { sepolia, polygonAmoy } from "wagmi/chains";
 import { ModalProvider } from "./ModalProvider";
 import { AccountProvider } from "./AccountProvider";
-import { wrapWithSmartWallet } from "@/sdk";
+import { wrapWithSmartWallet } from "@zerodev/yi-sdk";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const config = createConfig({
@@ -19,7 +19,20 @@ export default function Providers({ children }: { children: ReactNode }) {
       [sepolia.id]: http(getPublicRpc(sepolia.id)),
       [polygonAmoy.id]: http(getPublicRpc(polygonAmoy.id)),
     },
-    connectors: [wrapWithSmartWallet(injected())],
+    connectors: [
+      wrapWithSmartWallet(injected(), {
+        chains: [
+          {
+            id: sepolia.id,
+            bundlerRpc: getBundler(sepolia.id),
+          },
+          {
+            id: polygonAmoy.id,
+            bundlerRpc: getBundler(polygonAmoy.id),
+          },
+        ],
+      }),
+    ],
     multiInjectedProviderDiscovery: false,
   });
   const queryClient = new QueryClient();
