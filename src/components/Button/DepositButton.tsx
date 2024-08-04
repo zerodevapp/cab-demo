@@ -7,7 +7,7 @@ import {
   getPaymaster,
   supportedChains,
 } from "@/utils/constants";
-import { useCabBalance } from "@/hooks";
+import { useCabBalance } from "@build-with-yi/wagmi";
 import { useMemo, useCallback, useState } from "react";
 import { parseEther, parseAbi, erc20Abi } from "viem";
 import { vaultManagerAbi } from "@/abis/vaultManagerAbi";

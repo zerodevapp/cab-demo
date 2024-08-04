@@ -1,7 +1,8 @@
-import { Loader, Title, Flex } from "@mantine/core";
+import { Title, Flex } from "@mantine/core";
 import { supportedChains } from "@/utils/constants";
 import { useMemo } from "react";
-import { useTokenBalance, useCabBalance } from "@/hooks";
+import { useTokenBalance } from "@/hooks";
+import { useCabBalance } from "@build-with-yi/wagmi";
 import { TransferButton } from "@/components/Button";
 import { useAccount } from "wagmi";
 

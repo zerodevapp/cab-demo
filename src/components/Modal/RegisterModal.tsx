@@ -1,5 +1,6 @@
 import { Modal } from "@mantine/core";
-import { useModal, useCabBalance, usePaymasterRegistered, useRegisterPaymaster } from "@/hooks";
+import { useModal, usePaymasterRegistered } from "@/hooks";
+import { useCabBalance, useEnableCab } from "@build-with-yi/wagmi";
 import { supportedChains } from '@/utils/constants';
 import { useState, useEffect, useCallback } from "react";
 import { Button, Card, Text, Group, Transition, Loader, ThemeIcon, Progress, Stack } from "@mantine/core";
@@ -36,14 +37,14 @@ function RegisterPaymaster() {
   const [activeStep, setActiveStep] = useState(0);
   const { closeRegisterModal } = useModal();
   const { status, isRepayRegistered, isSponsorRegistered, isPending } = usePaymasterRegistered();
-  const { register: registerRepay, isPending: isRepayPending } = useRegisterPaymaster({
+  const { enableCab: enableRepay, isPending: isRepayPending } = useEnableCab({
     chainId: supportedChains[0].id,
     onSuccess: () => {
       setActiveStep(1);
       refetch();
     }
   });
-  const { register: registerSponsor, isPending: isSponsorPending  } = useRegisterPaymaster({
+  const { enableCab: enableSponsor, isPending: isSponsorPending  } = useEnableCab({
     chainId: supportedChains[1].id,
     onSuccess: () => {
       setActiveStep(2);
@@ -54,11 +55,11 @@ function RegisterPaymaster() {
   const register = useCallback(async () => {
     try {
       if (!isRepayRegistered) {
-        await registerRepay();
+        await enableRepay();
         setActiveStep(1);
       }
       if (!isSponsorRegistered) {
-        await registerSponsor();
+        await enableSponsor();
         setActiveStep(2);
       }
     } catch (error) {
@@ -69,7 +70,7 @@ function RegisterPaymaster() {
       })
     }
       
-  }, [isRepayRegistered, isSponsorRegistered, registerRepay, registerSponsor])
+  }, [isRepayRegistered, isSponsorRegistered, enableRepay, enableSponsor])
 
   useEffect(() => {
     setActiveStep(status);

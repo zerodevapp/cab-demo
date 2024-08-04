@@ -4,7 +4,8 @@ import { supportedChains, testErc20Address } from "@/utils/constants";
 import { erc20Abi, parseEther } from "viem";
 import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
 import { useWriteContracts, useCallsStatus } from "wagmi/experimental";
-import { useTokenBalance, useCabBalance, useEoaAddress } from "@/hooks";
+import { useTokenBalance, useEoaAddress } from "@/hooks";
+import { useCabBalance } from "@build-with-yi/wagmi";
 import { useMemo } from "react";
 
 export function TransferButton({

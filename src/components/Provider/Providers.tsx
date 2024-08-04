@@ -10,7 +10,7 @@ import { injected } from "wagmi/connectors";
 import { sepolia, polygonAmoy } from "wagmi/chains";
 import { ModalProvider } from "./ModalProvider";
 import { AccountProvider } from "./AccountProvider";
-import { wrapWithSmartWallet } from "@zerodev/yi-sdk";
+import { wrapEOAConnector } from "@build-with-yi/wagmi";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const config = createConfig({
@@ -19,20 +19,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       [sepolia.id]: http(getPublicRpc(sepolia.id)),
       [polygonAmoy.id]: http(getPublicRpc(polygonAmoy.id)),
     },
-    connectors: [
-      wrapWithSmartWallet(injected(), {
-        chains: [
-          {
-            id: sepolia.id,
-            bundlerRpc: getBundler(sepolia.id),
-          },
-          {
-            id: polygonAmoy.id,
-            bundlerRpc: getBundler(polygonAmoy.id),
-          },
-        ],
-      }),
-    ],
+    connectors: [wrapEOAConnector(injected())],
     multiInjectedProviderDiscovery: false,
   });
   const queryClient = new QueryClient();
