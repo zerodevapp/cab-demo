@@ -1,4 +1,4 @@
-import { sepolia, polygonAmoy } from 'wagmi/chains'; 
+import { sepolia, polygonAmoy } from 'wagmi/chains';
 import { type Address } from 'viem';
 
 export const ZERODEV_APP_ID = process.env.NEXT_PUBLIC_ZERODEV_APP_ID || "";
@@ -11,7 +11,6 @@ export const cabPaymasterUrl = process.env.NEXT_PUBLIC_CAB_PAYMASTER_URL;
 
 export const supportedAccounts = [
   "kernel",
-  "safe",
 ]
 
 export const supportedChains = [

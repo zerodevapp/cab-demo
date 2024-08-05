@@ -1,19 +1,38 @@
-import { Button } from "@mantine/core";
-import { supportedChains, testErc20Address, vaultManagerAddress, testErc20VaultAddress } from "@/utils/constants";
-import { useCABClient, useCabBalance } from "@/hooks";
+import { useEffect } from "react";
+import { Button, Tooltip } from "@mantine/core";
+import {
+  testErc20Address,
+  vaultManagerAddress,
+  testErc20VaultAddress,
+  getPaymaster,
+  supportedChains,
+} from "@/utils/constants";
+import { useReadCab } from "@build-with-yi/wagmi";
 import { useMemo, useCallback, useState } from "react";
-import { parseEther, encodeFunctionData, parseAbi, erc20Abi } from "viem";
+import { parseEther, parseAbi, erc20Abi } from "viem";
 import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
 import { notifications } from "@mantine/notifications";
+import { useAccount, useSwitchChain } from "wagmi";
+import { useWriteContracts, useCallsStatus } from "wagmi/experimental";
+import { usePaymasterRegistered } from "@/hooks";
 
 export function DepositButton() {
   const [isDepositPending, setIsDepositPending] = useState(false);
-  const chainId = supportedChains[0].id;
-  const { refetch } = useCabBalance();
-  const { data, isPending } = useCABClient({ chainId });
-  const smartAccountClient = data?.smartAccountClientVerifyingPaymaster;
-  const accountAddress = data?.address;
-  const disabled = isPending || !smartAccountClient || !accountAddress || !refetch;
+  const { refetch } = useReadCab();
+  const { isRegistered } = usePaymasterRegistered();
+  const { writeContracts, data: id } = useWriteContracts();
+  const { switchChainAsync } = useSwitchChain();
+  const { data: callsStatus, refetch: refetchCallsStatus } = useCallsStatus({
+    id: id as string,
+    query: {
+      enabled: !!id,
+      // Poll every 2 seconds until the calls are confirmed
+      refetchInterval: (data) =>
+        data.state.data?.status === "CONFIRMED" ? false : 2000,
+    },
+  });
+  const { address: accountAddress, chainId: currentChainId } = useAccount();
+  const disabled = !accountAddress || !refetch || !isRegistered;
 
   const txs = useMemo(() => {
     if (!accountAddress) return [];
@@ -21,64 +40,82 @@ export function DepositButton() {
 
     return [
       {
-        to: testErc20Address,
-        data: encodeFunctionData({
-          abi: parseAbi(["function mint(address,uint256)"]),
-          functionName: "mint",
-          args: [accountAddress, amount]
-        }),
-        value: 0n,
+        address: testErc20Address,
+        abi: parseAbi(["function mint(address,uint256)"]),
+        functionName: "mint",
+        args: [accountAddress, amount],
       },
       {
-        to: testErc20Address,
-        data: encodeFunctionData({
-          abi: erc20Abi,
-          functionName: "approve",
-          args: [vaultManagerAddress, amount],
-        }),
-        value: 0n
+        address: testErc20Address,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [vaultManagerAddress, amount],
       },
       {
-        to: vaultManagerAddress,
-        data: encodeFunctionData({
-          abi: vaultManagerAbi,
-          functionName: "deposit",
-          args: [testErc20Address, testErc20VaultAddress, amount, false]
-        }),
-        value: 0n
-      } 
+        address: vaultManagerAddress,
+        abi: vaultManagerAbi,
+        functionName: "deposit",
+        args: [testErc20Address, testErc20VaultAddress, amount, false],
+      },
     ];
   }, [accountAddress]);
 
+  useEffect(() => {
+    console.log("callsStatus", callsStatus?.status);
+    if (callsStatus?.status === "CONFIRMED") {
+      refetchCallsStatus();
+      setTimeout(() => {
+        refetch();
+        setIsDepositPending(false);
+        notifications.show({
+          color: "green",
+          message: "Deposit Success",
+        });
+      }, 1000);
+    }
+  }, [callsStatus?.status, refetch, refetchCallsStatus]);
+
   const deposit = useCallback(async () => {
-    if (!smartAccountClient || !refetch) return;
+    if (!refetch) return;
     try {
       setIsDepositPending(true);
-      await smartAccountClient.sendTransactions({
-        account: smartAccountClient.account,
-        transactions: txs
-      });
-      refetch();
-      notifications.show({
-        color: "green",
-        message: "Deposit Success",
+
+      if (currentChainId !== supportedChains[0].id) {
+        await switchChainAsync({ chainId: supportedChains[0].id });
+      }
+
+      const paymasterUrl = getPaymaster(supportedChains[0].id);
+      writeContracts({
+        contracts: txs,
+        capabilities: {
+          paymasterService: {
+            url: paymasterUrl,
+          },
+        },
       });
     } catch (error) {
-    } finally {
-      setIsDepositPending(false);
+      console.error(error);
     }
-  }, [smartAccountClient, txs, refetch]);
+  }, [writeContracts, txs, refetch, switchChainAsync, currentChainId]);
 
   return (
-    <Button
-      variant="outline"
-      disabled={disabled}
-      loading={isDepositPending}
-      onClick={() => {
-        deposit();
-      }}
+    <Tooltip
+      label="CAB paymaster is still registering for this account. Please wait a few moments."
+      position="bottom"
+      disabled={isRegistered}
     >
-      Deposit To CAB
-    </Button>
+      <div>
+        <Button
+          variant="outline"
+          disabled={disabled}
+          loading={isDepositPending}
+          onClick={() => {
+            deposit();
+          }}
+        >
+          Deposit To CAB
+        </Button>
+      </div>
+    </Tooltip>
   );
 }
