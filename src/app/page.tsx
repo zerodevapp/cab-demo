@@ -1,26 +1,29 @@
 "use client";
 import { ConnectButton } from "@/components/Button";
 import Navbar from "@/components/Navbar";
-import { Flex, Switch, Text, Box, Group, Grid, Container } from "@mantine/core";
+import { Flex, Switch, Text, Box, Group, Grid, Container, Tooltip } from "@mantine/core";
 import { useAccount } from "wagmi";
 import { useState, useEffect } from "react";
 import { useModal, usePaymasterRegistered } from "@/hooks";
 import SmartAccountBalanceBlock from "@/components/SmartAccountBalanceBlock";
 import EOABalanceBlock from "@/components/EOABalanceBlock";
 import TransferBlock from "@/components/TransferBlock";
+import { useEnableCab } from "@build-with-yi/wagmi";
 
 export default function Home() {
   const [hydration, setHydration] = useState(false);
   const { openRegisterModal } = useModal();
   const { isRegistered } = usePaymasterRegistered();
+  const { isEnabled } = useEnableCab();
   const { isConnected } = useAccount();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => setHydration(true), []);
 
   useEffect(() => {
-    if (isConnected && isRegistered === false) openRegisterModal?.();
-  }, [isRegistered, isConnected, openRegisterModal])
+    console.log('isEnabled', isEnabled)
+    if (isConnected && isEnabled === false) openRegisterModal?.();
+  }, [isEnabled, isConnected, openRegisterModal])
 
   if (!hydration) return null;
 
@@ -37,13 +40,22 @@ export default function Home() {
           <Box mt="md" mb="xl" style={{ alignSelf: "center" }}>
             <Group p="center">
               <Text size="sm">CAB Mode</Text>
-              <Switch
-                size="lg"
-                onLabel="ON"
-                offLabel="OFF"
-                checked={checked}
-                onChange={(event) => setChecked(event.currentTarget.checked)}
-              />
+              <Tooltip
+                label="CAB paymaster is still registering for this account. Please wait a few moments."
+                position="bottom"
+                disabled={isRegistered}
+              >
+                <div>
+                  <Switch
+                    size="lg"
+                    onLabel="ON"
+                    offLabel="OFF"
+                    checked={checked}
+                    onChange={(event) => setChecked(event.currentTarget.checked)}
+                    disabled={!isRegistered}
+                  />
+                </div>
+              </Tooltip>
             </Group>
           </Box>
           

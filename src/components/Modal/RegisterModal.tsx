@@ -1,10 +1,21 @@
 import { Modal } from "@mantine/core";
-import { useModal, usePaymasterRegistered } from "@/hooks";
-import { useReadCab, useEnableCab } from "@build-with-yi/wagmi";
-import { supportedChains } from '@/utils/constants';
+import { useModal } from "@/hooks";
+import { useReadCab } from "@build-with-yi/wagmi";
+import { useEnableCab } from "@build-with-yi/wagmi";
+import { supportedChains } from "@/utils/constants";
 import { useState, useEffect, useCallback } from "react";
-import { Button, Card, Text, Group, Transition, Loader, ThemeIcon, Progress, Stack } from "@mantine/core";
-import { IconCircleCheck, IconRocket } from '@tabler/icons-react';
+import {
+  Button,
+  Card,
+  Text,
+  Group,
+  Transition,
+  Loader,
+  ThemeIcon,
+  Progress,
+  Stack,
+} from "@mantine/core";
+import { IconCircleCheck, IconRocket } from "@tabler/icons-react";
 import Image from "next/image";
 import { notifications } from "@mantine/notifications";
 
@@ -15,10 +26,7 @@ export interface RegisterModalProps {
   onClose: () => void;
 }
 
-export default function RegisterModal({
-  onClose,
-  open,
-}: RegisterModalProps) {
+export default function RegisterModal({ onClose, open }: RegisterModalProps) {
   return (
     <Modal
       opened={open}
@@ -36,68 +44,90 @@ export default function RegisterModal({
 function RegisterPaymaster() {
   const [activeStep, setActiveStep] = useState(0);
   const { closeRegisterModal } = useModal();
-  const { status, isRepayRegistered, isSponsorRegistered, isPending } = usePaymasterRegistered();
-  const { enableCab: enableRepay, isPending: isRepayPending } = useEnableCab({
-    chainId: supportedChains[0].id,
+
+  const {
+    enableCab,
+    isPending,
+    isEnabled: isCabEnabled,
+  } = useEnableCab({
     onSuccess: () => {
       setActiveStep(1);
       refetch();
-    }
-  });
-  const { enableCab: enableSponsor, isPending: isSponsorPending  } = useEnableCab({
-    chainId: supportedChains[1].id,
-    onSuccess: () => {
-      setActiveStep(2);
-    }
+    },
   });
   const { refetch } = useReadCab();
 
   const register = useCallback(async () => {
     try {
-      if (!isRepayRegistered) {
-        await enableRepay();
-        setActiveStep(1);
-      }
-      if (!isSponsorRegistered) {
-        await enableSponsor();
+      if (!isCabEnabled) {
+        await enableCab();
         setActiveStep(2);
       }
     } catch (error) {
       console.log(error);
       notifications.show({
         color: "red",
-        message: "Fail to register paymaster",
-      })
+        message: "Fail to enable CAB",
+      });
     }
-      
-  }, [isRepayRegistered, isSponsorRegistered, enableRepay, enableSponsor])
+  }, [isCabEnabled, enableCab]);
 
   useEffect(() => {
-    setActiveStep(status);
-  }, [status])
+    setActiveStep(isCabEnabled ? 2 : 0);
+  }, [isCabEnabled]);
 
-  if (isPending) return <Loader />;
-
+  const closeModal = () => {
+    if (closeRegisterModal) {
+      closeRegisterModal();
+    }
+    notifications.show({
+      color: "green",
+      message: "CAB enabled, please wait a few moments for the registration to complete.",
+    });
+  };
   return (
-    <Card shadow="md" radius="lg" p="xl" style={{ maxWidth: 400, margin: 'auto' }}>
+    <Card
+      shadow="md"
+      radius="lg"
+      p="xl"
+      style={{ maxWidth: 400, margin: "auto" }}
+    >
       <Stack gap="xl">
         <Group p="apart">
-          <Text size="xl" w={700}>Register CAB Paymaster</Text>
+          <Text size="xl" w={700}>
+            Register CAB Paymaster
+          </Text>
           <ThemeIcon size="xl" radius="md" variant="light" color="blue">
             <IconRocket size={28} />
           </ThemeIcon>
         </Group>
 
-        <Progress value={(activeStep / TOTAL_STEPS) * 100} size="xl" radius="xl" />
+        <Progress
+          value={(activeStep / TOTAL_STEPS) * 100}
+          size="xl"
+          radius="xl"
+        />
 
         <Stack gap="md">
           {supportedChains.map((chain, index) => (
             <Group key={chain.chain.name} p="apart">
               <Group gap="sm" style={{ flex: 1 }}>
-                <Image src={chain.logo} width={24} height={24} alt={chain.chain.name} />
-                <Text size="md" style={{ fontWeight: 500 }}>{chain.chain.name}</Text>
+                <Image
+                  src={chain.logo}
+                  width={24}
+                  height={24}
+                  alt={chain.chain.name}
+                />
+                <Text size="md" style={{ fontWeight: 500 }}>
+                  {chain.chain.name}
+                </Text>
               </Group>
-              <Transition mounted={activeStep > index} transition="slide-left" duration={400} timingFunction="ease">
+              <Transition
+                mounted={activeStep > index}
+                transition="slide-left"
+                duration={400}
+                timingFunction="ease"
+              >
                 {(styles) => (
                   <ThemeIcon style={styles} color="green" size="lg" radius="xl">
                     <IconCircleCheck size={20} />
@@ -110,16 +140,13 @@ function RegisterPaymaster() {
 
         {activeStep === TOTAL_STEPS ? (
           <Stack align="center" gap="md">
-            <Button fullWidth size="lg" onClick={closeRegisterModal}>Close</Button>
+            <Button fullWidth size="lg" onClick={closeModal}>
+              Close
+            </Button>
           </Stack>
         ) : (
-          <Button
-            fullWidth
-            size="lg"
-            loading={isRepayPending || isSponsorPending}
-            onClick={register}
-          >
-            Register
+          <Button fullWidth size="lg" loading={isPending} onClick={register}>
+            Enable CAB
           </Button>
         )}
       </Stack>

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Button } from "@mantine/core";
+import { Button, Tooltip } from "@mantine/core";
 import {
   testErc20Address,
   vaultManagerAddress,
@@ -14,10 +14,12 @@ import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
 import { notifications } from "@mantine/notifications";
 import { useAccount, useSwitchChain } from "wagmi";
 import { useWriteContracts, useCallsStatus } from "wagmi/experimental";
+import { usePaymasterRegistered } from "@/hooks";
 
 export function DepositButton() {
   const [isDepositPending, setIsDepositPending] = useState(false);
   const { refetch } = useReadCab();
+  const { isRegistered } = usePaymasterRegistered();
   const { writeContracts, data: id } = useWriteContracts();
   const { switchChainAsync } = useSwitchChain();
   const { data: callsStatus, refetch: refetchCallsStatus } = useCallsStatus({
@@ -30,7 +32,7 @@ export function DepositButton() {
     },
   });
   const { address: accountAddress, chainId: currentChainId } = useAccount();
-  const disabled = !accountAddress || !refetch;
+  const disabled = !accountAddress || !refetch || !isRegistered;
 
   const txs = useMemo(() => {
     if (!accountAddress) return [];
@@ -97,15 +99,23 @@ export function DepositButton() {
   }, [writeContracts, txs, refetch, switchChainAsync, currentChainId]);
 
   return (
-    <Button
-      variant="outline"
-      disabled={disabled}
-      loading={isDepositPending}
-      onClick={() => {
-        deposit();
-      }}
+    <Tooltip
+      label="CAB paymaster is still registering for this account. Please wait a few moments."
+      position="bottom"
+      disabled={isRegistered}
     >
-      Deposit To CAB
-    </Button>
+      <div>
+        <Button
+          variant="outline"
+          disabled={disabled}
+          loading={isDepositPending}
+          onClick={() => {
+            deposit();
+          }}
+        >
+          Deposit To CAB
+        </Button>
+      </div>
+    </Tooltip>
   );
 }

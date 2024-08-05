@@ -1,5 +1,3 @@
-import { useState, useEffect } from "react";
-import { useAccount } from "wagmi";
 import { supportedChains } from "@/utils/constants";
 import { useTokenBalance, useEoaAddress } from "@/hooks";
 import { Card, Text, Flex, Badge } from "@mantine/core";
