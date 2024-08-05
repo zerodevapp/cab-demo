@@ -5,7 +5,7 @@ import { erc20Abi, parseEther } from "viem";
 import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
 import { useWriteContracts, useCallsStatus } from "wagmi/experimental";
 import { useTokenBalance, useEoaAddress } from "@/hooks";
-import { useCabBalance } from "@build-with-yi/wagmi";
+import { useReadCab } from "@build-with-yi/wagmi";
 import { useMemo } from "react";
 
 export function TransferButton({
@@ -24,12 +24,12 @@ export function TransferButton({
   const { address: smartAccountAddress, chainId: currentChainId } =
     useAccount();
   const { refetch } = useTokenBalance({ address, chainId });
-  const { refetch: refetchCabBalance } = useCabBalance();
+  const { refetch: refetchCabBalance } = useReadCab();
   const { data: tokenBalance } = useTokenBalance({
     address: smartAccountAddress,
     chainId: chainId,
   });
-  const { data: cabBalance } = useCabBalance();
+  const { data: cabBalance } = useReadCab();
   const { writeContracts, data: id } = useWriteContracts();
   const { data: callsStatus, refetch: refetchCallsStatus } = useCallsStatus({
     id: id as string,

@@ -2,7 +2,7 @@ import { Title, Flex } from "@mantine/core";
 import { supportedChains } from "@/utils/constants";
 import { useMemo } from "react";
 import { useTokenBalance } from "@/hooks";
-import { useCabBalance } from "@build-with-yi/wagmi";
+import { useReadCab } from "@build-with-yi/wagmi";
 import { TransferButton } from "@/components/Button";
 import { useAccount } from "wagmi";
 
@@ -13,8 +13,8 @@ export default function TransferBlock({ cab }: { cab: boolean }) {
   const { isPending: isTokenBalancePending } = useTokenBalance({
     address: smartAccountAddress,
     chainId: chainId,
-  })
-  const { isPending: isCabBalancePending } = useCabBalance();
+  });
+  const { isPending: isCabBalancePending } = useReadCab();
 
   const loading = useMemo(() => {
     return cab ? isCabBalancePending : isTokenBalancePending;
@@ -25,8 +25,8 @@ export default function TransferBlock({ cab }: { cab: boolean }) {
       <Title order={5}>Transfer 0.01 USDC to EOA</Title>
       <Flex direction="row" gap="md">
         <TransferButton chainId={supportedChains[0].id} cab={cab} />
-        <TransferButton chainId={supportedChains[1].id} cab={cab} />  
-      </Flex>  
-    </Flex>     
-  )
+        <TransferButton chainId={supportedChains[1].id} cab={cab} />
+      </Flex>
+    </Flex>
+  );
 }

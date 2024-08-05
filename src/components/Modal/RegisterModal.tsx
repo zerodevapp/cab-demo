@@ -1,6 +1,6 @@
 import { Modal } from "@mantine/core";
 import { useModal, usePaymasterRegistered } from "@/hooks";
-import { useCabBalance, useEnableCab } from "@build-with-yi/wagmi";
+import { useReadCab, useEnableCab } from "@build-with-yi/wagmi";
 import { supportedChains } from '@/utils/constants';
 import { useState, useEffect, useCallback } from "react";
 import { Button, Card, Text, Group, Transition, Loader, ThemeIcon, Progress, Stack } from "@mantine/core";
@@ -50,7 +50,7 @@ function RegisterPaymaster() {
       setActiveStep(2);
     }
   });
-  const { refetch } = useCabBalance();
+  const { refetch } = useReadCab();
 
   const register = useCallback(async () => {
     try {

@@ -7,7 +7,7 @@ import {
   getPaymaster,
   supportedChains,
 } from "@/utils/constants";
-import { useCabBalance } from "@build-with-yi/wagmi";
+import { useReadCab } from "@build-with-yi/wagmi";
 import { useMemo, useCallback, useState } from "react";
 import { parseEther, parseAbi, erc20Abi } from "viem";
 import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
@@ -17,7 +17,7 @@ import { useWriteContracts, useCallsStatus } from "wagmi/experimental";
 
 export function DepositButton() {
   const [isDepositPending, setIsDepositPending] = useState(false);
-  const { refetch } = useCabBalance();
+  const { refetch } = useReadCab();
   const { writeContracts, data: id } = useWriteContracts();
   const { switchChainAsync } = useSwitchChain();
   const { data: callsStatus, refetch: refetchCallsStatus } = useCallsStatus({
