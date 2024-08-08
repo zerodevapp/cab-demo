@@ -33,6 +33,7 @@ export function DepositButton() {
   });
   const { address: accountAddress, chainId: currentChainId } = useAccount();
   const disabled = !accountAddress || !refetch || !isRegistered;
+  const status = callsStatus?.status;
 
   const txs = useMemo(() => {
     if (!accountAddress) return [];
@@ -61,8 +62,8 @@ export function DepositButton() {
   }, [accountAddress]);
 
   useEffect(() => {
-    console.log("callsStatus", callsStatus?.status);
-    if (callsStatus?.status === "CONFIRMED") {
+    console.log("callsStatus", status);
+    if (status === "CONFIRMED") {
       refetchCallsStatus();
       setTimeout(() => {
         refetch();
@@ -73,7 +74,7 @@ export function DepositButton() {
         });
       }, 1000);
     }
-  }, [callsStatus?.status, refetch, refetchCallsStatus]);
+  }, [status, refetch, refetchCallsStatus]);
 
   const deposit = useCallback(async () => {
     if (!refetch) return;
