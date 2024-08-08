@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { Button, Tooltip } from "@mantine/core";
 import { supportedChains, testErc20Address } from "@/utils/constants";
 import { erc20Abi, parseEther } from "viem";
-import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
+import { useAccount, useSwitchChain } from "wagmi";
 import { useWriteContracts, useCallsStatus } from "wagmi/experimental";
 import { useTokenBalance, useEoaAddress } from "@/hooks";
 import { useReadCab } from "@build-with-yi/wagmi";
 import { useMemo } from "react";
+import { notifications } from "@mantine/notifications";
 
 export function TransferButton({
   chainId,
@@ -18,8 +19,8 @@ export function TransferButton({
   const chain = (
     supportedChains.find((chain) => chain.id === chainId) ?? supportedChains[0]
   ).chain;
-  const { switchChainAsync } = useSwitchChain();
   const [transferPending, setTransferPending] = useState(false);
+  const { switchChainAsync, isPending: isSwitchPending } = useSwitchChain();
   const { address } = useEoaAddress();
   const { address: smartAccountAddress, chainId: currentChainId } =
     useAccount();
@@ -30,7 +31,7 @@ export function TransferButton({
     chainId: chainId,
   });
   const { data: cabBalance } = useReadCab();
-  const { writeContracts, data: id } = useWriteContracts();
+  const { writeContractsAsync, data: id } = useWriteContracts();
   const { data: callsStatus, refetch: refetchCallsStatus } = useCallsStatus({
     id: id as string,
     query: {
@@ -40,6 +41,7 @@ export function TransferButton({
         data.state.data?.status === "CONFIRMED" ? false : 2000,
     },
   });
+  const status = callsStatus?.status;
 
   const disabled = useMemo(() => {
     return cab
@@ -48,20 +50,24 @@ export function TransferButton({
   }, [tokenBalance, cabBalance, cab]);
 
   useEffect(() => {
-    if (callsStatus?.status === "CONFIRMED") {
+    if (status === "CONFIRMED") {
       refetch();
       refetchCabBalance();
       refetchCallsStatus();
       setTransferPending(false);
+      notifications.show({
+        color: "green",
+        message: "Successfully transfer 0.01 ETH to your eoa",
+      });
     }
-  }, [callsStatus?.status, refetch, refetchCabBalance, refetchCallsStatus]);
+  }, [status, refetch, refetchCabBalance, refetchCallsStatus]);
 
   return (
     <Tooltip label="Insufficient balance" disabled={!disabled}>
       <Button
         variant="outline"
         disabled={disabled}
-        loading={transferPending}
+        loading={transferPending || isSwitchPending}
         onClick={async () => {
           if (!address) return;
 
@@ -71,7 +77,7 @@ export function TransferButton({
             await switchChainAsync({ chainId });
           }
 
-          writeContracts({
+          await writeContractsAsync({
             contracts: [
               {
                 abi: erc20Abi,
