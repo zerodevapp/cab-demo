@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@build-with-yi/wagmi": "0.0.10",
+    "@build-with-yi/wagmi": "0.0.11",
     "@mantine/core": "^7.11.2",
     "@mantine/hooks": "^7.11.2",
     "@mantine/notifications": "^7.7.1",

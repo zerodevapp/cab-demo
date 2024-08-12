@@ -60,7 +60,9 @@ function RegisterPaymaster() {
   const register = useCallback(async () => {
     try {
       if (!isCabEnabled) {
-        await enableCab();
+        await enableCab({
+          tokens: [{ name: "6TEST", networks: [11155420, 84532] }],
+        });
         setActiveStep(2);
       }
     } catch (error) {
@@ -82,7 +84,8 @@ function RegisterPaymaster() {
     }
     notifications.show({
       color: "green",
-      message: "CAB enabled, please wait a few moments for the registration to complete.",
+      message:
+        "CAB enabled, please wait a few moments for the registration to complete.",
     });
   };
   return (
