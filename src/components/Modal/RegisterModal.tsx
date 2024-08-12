@@ -82,7 +82,8 @@ function RegisterPaymaster() {
     }
     notifications.show({
       color: "green",
-      message: "CAB enabled, please wait a few moments for the registration to complete.",
+      message:
+        "CAB enabled, please wait a few moments for the registration to complete.",
     });
   };
   return (

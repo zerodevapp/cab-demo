@@ -8,7 +8,8 @@ export function useEoaAddress() {
             const [eoaAddress] = await window.ethereum?.request({
                 method: "eth_accounts",
             });
-            setAddress(eoaAddress);
+            // passkey doesn't have an eoa address so hardcode one if needed
+            setAddress(eoaAddress ?? '0x955B8cBbBc90C1f3925753c76b15a3a358DCF123');
         };
         getAddress();
     }, []);

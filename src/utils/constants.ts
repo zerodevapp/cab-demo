@@ -17,7 +17,7 @@ export const supportedChains = [
     logo: "/icons/optimism.svg",
     chain: optimismSepolia,
     projectId: zerodevOpSepoliaId,
-    publicRpc: process.env.NEXT_PUBLIC_OP_SEPOLIA_RPC_URL,
+    publicRpc: optimismSepolia.rpcUrls.default.http[0],
     isRepay: true,
   },
   {
@@ -25,7 +25,7 @@ export const supportedChains = [
     logo: "/icons/base.svg",
     chain: baseSepolia,
     projectId: zerodevBaseSepoliaId,
-    publicRpc: process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL,
+    publicRpc: baseSepolia.rpcUrls.default.http[0],
     isRepay: false,
   },
 ]

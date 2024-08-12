@@ -10,7 +10,7 @@ import { injected } from "wagmi/connectors";
 import { optimismSepolia, baseSepolia } from "wagmi/chains";
 import { ModalProvider } from "./ModalProvider";
 import { AccountProvider } from "./AccountProvider";
-import { wrapEOAConnector } from "@build-with-yi/wagmi";
+import { wrapEOAConnector, passkeyConnector } from "@build-with-yi/wagmi";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const config = createConfig({
@@ -19,7 +19,12 @@ export default function Providers({ children }: { children: ReactNode }) {
       [optimismSepolia.id]: http(getPublicRpc(optimismSepolia.id)),
       [baseSepolia.id]: http(getPublicRpc(baseSepolia.id)),
     },
-    connectors: [wrapEOAConnector(injected())],
+    connectors: [
+      wrapEOAConnector(injected()),
+      passkeyConnector({
+        passkeyName: "cab-demo1",
+      }),
+    ],
     multiInjectedProviderDiscovery: false,
   });
   const queryClient = new QueryClient();
