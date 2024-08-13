@@ -21,7 +21,6 @@ export default function Home() {
   useEffect(() => setHydration(true), []);
 
   useEffect(() => {
-    console.log('isEnabled', isEnabled)
     if (isConnected && isEnabled === false) openRegisterModal?.();
   }, [isEnabled, isConnected, openRegisterModal])
 
