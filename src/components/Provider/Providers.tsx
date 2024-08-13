@@ -1,5 +1,4 @@
 "use client";
-import { getPublicRpc } from "@/utils/constants";
 import { MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
 import { Notifications } from "@mantine/notifications";
@@ -16,8 +15,8 @@ export default function Providers({ children }: { children: ReactNode }) {
   const config = createConfig({
     chains: [optimismSepolia, baseSepolia],
     transports: {
-      [optimismSepolia.id]: http(getPublicRpc(optimismSepolia.id)),
-      [baseSepolia.id]: http(getPublicRpc(baseSepolia.id)),
+      [optimismSepolia.id]: http(),
+      [baseSepolia.id]: http(),
     },
     connectors: [wrapEOAConnector(injected())],
     multiInjectedProviderDiscovery: false,

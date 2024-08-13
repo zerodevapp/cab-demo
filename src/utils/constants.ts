@@ -1,11 +1,13 @@
 import { optimismSepolia, baseSepolia } from 'wagmi/chains';
 import { type Address } from 'viem';
 
-export const ZERODEV_APP_ID = process.env.NEXT_PUBLIC_ZERODEV_APP_ID || "";
+export const zerodevOpSepoliaId = process.env.NEXT_PUBLIC_ZERODEV_OP_SEPOLIA_PROJECT_ID;
 
-export const zerodevOpSepoliaId = process.env.NEXT_PUBLIC_ZERODEV_OP_SEPOLIA_PROJECT_ID || "";
+export const zerodevBaseSepoliaId = process.env.NEXT_PUBLIC_ZERODEV_BASE_SEPOLIA_PROJECT_ID;
 
-export const zerodevBaseSepoliaId = process.env.NEXT_PUBLIC_ZERODEV_BASE_SEPOLIA_PROJECT_ID || "";
+if (!zerodevOpSepoliaId || !zerodevBaseSepoliaId) {
+  throw new Error("Please set Zerodev project IDs in .env");
+}
 
 export const supportedAccounts = [
   "kernel",
@@ -17,7 +19,6 @@ export const supportedChains = [
     logo: "/icons/optimism.svg",
     chain: optimismSepolia,
     projectId: zerodevOpSepoliaId,
-    publicRpc: process.env.NEXT_PUBLIC_OP_SEPOLIA_RPC_URL,
     isRepay: true,
   },
   {
@@ -25,7 +26,6 @@ export const supportedChains = [
     logo: "/icons/base.svg",
     chain: baseSepolia,
     projectId: zerodevBaseSepoliaId,
-    publicRpc: process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL,
     isRepay: false,
   },
 ]
@@ -33,36 +33,12 @@ if (supportedChains.length !== 2) {
   throw new Error("Supported chains not configured correctly");
 }
 
-export const getChain = (chainId: number) => {
-  const chain = supportedChains.find(chain => chain.id === chainId);
-  if (!chain) {
-    throw new Error("Unsupported chain");
-  }
-  return chain;
-};
-
 export const getBundler = (chainId: number) => {
   const chain = supportedChains.find(chain => chain.id === chainId);
   if (!chain) {
     throw new Error("Unsupported chain");
   }
   return `https://rpc.zerodev.app/api/v2/bundler/${chain.projectId}?provider=PIMLICO`;
-};
-
-export const getPimlicoRpc = (chainId: number) => {
-  const chain = supportedChains.find(chain => chain.id === chainId);
-  if (!chain) {
-    throw new Error("Unsupported chain");
-  }
-  return `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${process.env.NEXT_PUBLIC_PIMLICO_API_KEY}`;
-}
-
-export const getPublicRpc = (chainId: number) => {
-  const chain = supportedChains.find(chain => chain.id === chainId);
-  if (!chain) {
-    throw new Error("Unsupported chain");
-  }
-  return chain.publicRpc;
 };
 
 export const getPaymaster = (chainId: number) => {
