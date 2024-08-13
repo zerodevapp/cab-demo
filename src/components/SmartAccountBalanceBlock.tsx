@@ -9,18 +9,7 @@ import { BalanceItem } from "@/components/BalanceItem";
 export default function SmartBalanceBlock({ cab }: { cab: boolean }) {
   const { address } = useAccount();
   const smartAccountAddress = address ?? "0x";
-
   const { data: balance } = useReadCab();
-  const { data: tokenBalanceRepay, isSuccess: isRepaySuccess } =
-    useTokenBalance({
-      address: smartAccountAddress,
-      chainId: supportedChains[0].id,
-    });
-  const { data: tokenBalanceSponsor, isSuccess: isSponsorSuccess } =
-    useTokenBalance({
-      address: smartAccountAddress,
-      chainId: supportedChains[1].id,
-    });
 
   return (
     <Card shadow="sm" padding="lg" radius="md" withBorder>
@@ -34,20 +23,6 @@ export default function SmartBalanceBlock({ cab }: { cab: boolean }) {
       </Flex>
 
       <Stack gap="sm">
-        {/* {isRepaySuccess && (
-          <BalanceItem
-            chain={supportedChains[0].chain.name}
-            logo={supportedChains[0].logo}
-            balance={formatEther(tokenBalanceRepay || 0n)}
-          />
-        )}
-        {isSponsorSuccess && (
-          <BalanceItem
-            chain={supportedChains[1].chain.name}
-            logo={supportedChains[1].logo}
-            balance={formatEther(tokenBalanceSponsor || 0n)}
-          />
-        )} */}
         {cab && balance && (
           <BalanceItem chain="CAB" balance={formatEther(balance)} highlight />
         )}
