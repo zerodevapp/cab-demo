@@ -1,7 +1,16 @@
 "use client";
 import { ConnectButton } from "@/components/Button";
 import Navbar from "@/components/Navbar";
-import { Flex, Switch, Text, Box, Group, Grid, Container, Tooltip } from "@mantine/core";
+import {
+  Flex,
+  Switch,
+  Text,
+  Box,
+  Group,
+  Grid,
+  Container,
+  Tooltip,
+} from "@mantine/core";
 import { useAccount } from "wagmi";
 import { useState, useEffect } from "react";
 import { useModal, usePaymasterRegistered } from "@/hooks";
@@ -14,22 +23,25 @@ export default function Home() {
   const [hydration, setHydration] = useState(false);
   const { openRegisterModal } = useModal();
   const { isRegistered } = usePaymasterRegistered();
-  const { isEnabled } = useEnableCab();
+  const { isEnabledOnCurrentChain, isPending } = useEnableCab();
   const { isConnected } = useAccount();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => setHydration(true), []);
 
   useEffect(() => {
-    if (isConnected && isEnabled === false) openRegisterModal?.();
-  }, [isEnabled, isConnected, openRegisterModal])
+    if (isConnected && !isPending && !isEnabledOnCurrentChain("6TEST")) {
+      console.log("openRegisterModal");
+      openRegisterModal?.();
+    }
+  }, [isConnected, isPending, isEnabledOnCurrentChain, openRegisterModal]);
 
   if (!hydration) return null;
 
   return (
     <Flex direction="column" style={{ minHeight: "100vh", overflow: "auto" }}>
       <Navbar />
-      
+
       {!isConnected ? (
         <Flex align="center" justify="center" style={{ flex: 1 }}>
           <ConnectButton />
@@ -50,15 +62,20 @@ export default function Home() {
                     onLabel="ON"
                     offLabel="OFF"
                     checked={checked}
-                    onChange={(event) => setChecked(event.currentTarget.checked)}
+                    onChange={(event) =>
+                      setChecked(event.currentTarget.checked)
+                    }
                     disabled={!isRegistered}
                   />
                 </div>
               </Tooltip>
             </Group>
           </Box>
-          
-          <Container size="md" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+
+          <Container
+            size="md"
+            style={{ flex: 1, display: "flex", flexDirection: "column" }}
+          >
             <Flex direction="column" gap="md" style={{ flex: 1 }}>
               <Grid gutter="md">
                 <Grid.Col span={6}>

@@ -45,11 +45,7 @@ function RegisterPaymaster() {
   const [activeStep, setActiveStep] = useState(0);
   const { closeRegisterModal } = useModal();
 
-  const {
-    enableCab,
-    isPending,
-    isEnabled: isCabEnabled,
-  } = useEnableCab({
+  const { enableCab, isPending, isEnabledOnCurrentChain } = useEnableCab({
     onSuccess: () => {
       setActiveStep(1);
       refetch();
@@ -59,7 +55,7 @@ function RegisterPaymaster() {
 
   const register = useCallback(async () => {
     try {
-      if (!isCabEnabled) {
+      if (!isEnabledOnCurrentChain("6TEST")) {
         await enableCab({
           tokens: [{ name: "6TEST", networks: [11155420, 84532] }],
         });
@@ -72,11 +68,11 @@ function RegisterPaymaster() {
         message: "Fail to enable CAB",
       });
     }
-  }, [isCabEnabled, enableCab]);
+  }, [isEnabledOnCurrentChain, enableCab]);
 
   useEffect(() => {
-    setActiveStep(isCabEnabled ? 2 : 0);
-  }, [isCabEnabled]);
+    setActiveStep(isEnabledOnCurrentChain("6TEST") ? 2 : 0);
+  }, [isEnabledOnCurrentChain]);
 
   const closeModal = () => {
     if (closeRegisterModal) {
