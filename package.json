@@ -19,6 +19,7 @@
     "@walletconnect/encoding": "^1.0.2",
     "@walletconnect/web3wallet": "^1.14.0",
     "encoding": "^0.1.13",
+    "lodash": "^4.17.21",
     "next": "14.2.5",
     "permissionless": "^0.1.16",
     "pino-pretty": "^11.0.0",

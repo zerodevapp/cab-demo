@@ -3,10 +3,11 @@ import { formatJsonRpcError } from "@walletconnect/jsonrpc-utils"
 import type { SessionTypes } from "@walletconnect/types"
 import { getSdkError } from "@walletconnect/utils"
 import type { Web3WalletTypes } from "@walletconnect/web3wallet"
-import { KernelEIP1193Provider } from "@zerodev/sdk"
-import type { EntryPoint } from "permissionless/types"
+// import { KernelEIP1193Provider } from "@zerodev/sdk"
+// import type { EntryPoint } from "permissionless/types"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useKernelClient } from "../hooks/useKernelClient"
+import { useAccount, useWalletClient } from "wagmi"
+// import { useKernelClient } from "../hooks/useKernelClient"
 import WalletConnectWallet from "../utils/walletconnect/WalletConnectWallet"
 import { stripEip155Prefix } from "../utils/walletconnect/constants"
 import {
@@ -19,6 +20,7 @@ import {
     WalletConnectContext,
     type WalletConnectParams
 } from "./WalletConnectContext"
+import { ExplicitAny } from "../provider/types"
 
 export function WalletConnectProvider({
     children
@@ -31,19 +33,21 @@ export function WalletConnectProvider({
     const [wcWallet, setWcWallet] = useState<WalletConnectWallet | undefined>()
     const [error, setError] = useState<Error | undefined>()
     const [isLoading, setIsLoading] = useState<WCLoadingState | undefined>()
-    const [kernelProvider, setKernelProvider] =
-        useState<KernelEIP1193Provider<EntryPoint>>()
-    const { kernelClient } = useKernelClient()
+    // const [kernelProvider, setKernelProvider] =
+    //     useState<KernelEIP1193Provider<EntryPoint>>()
+    // const { kernelClient } = useKernelClient()
     const [sessionProposal, setSessionProposal] =
         useState<Web3WalletTypes.SessionProposal>()
     const [sessions, setSessions] = useState<SessionTypes.Struct[]>([])
     const [sessionRequest, setSessionRequest] =
         useState<Web3WalletTypes.SessionRequest>()
-    const chainId = useMemo(() => kernelClient?.chain?.id, [kernelClient])
-    const address = useMemo(
-        () => kernelClient?.account?.address,
-        [kernelClient]
-    )
+    // const chainId = useMemo(() => kernelClient?.chain?.id, [kernelClient])
+    // const address = useMemo(
+    //     () => kernelClient?.account?.address,
+    //     [kernelClient]
+    // )
+    const { address, chainId } = useAccount()
+    const { data: walletClient } = useWalletClient()
     const isInitialized = useMemo(
         () => !!walletConnectParams?.projectId,
         [walletConnectParams]
@@ -66,20 +70,20 @@ export function WalletConnectProvider({
         getWallet()
     }, [walletConnectParams])
 
-    useEffect(() => {
-        if (!kernelClient || !isInitialized) return
-        const provider = new KernelEIP1193Provider(kernelClient)
-        setKernelProvider(provider)
-    }, [kernelClient, isInitialized])
+    // useEffect(() => {
+    //     if (!walletClient || !isInitialized) return
+    //     const provider = new KernelEIP1193Provider(kernelClient)
+    //     setKernelProvider(provider)
+    // }, [kernelClient, isInitialized])
 
     // Subscribe to requests
     useEffect(() => {
-        if (!wcWallet || !kernelProvider || !chainId || !isInitialized) return
+        if (!wcWallet || !walletClient || !chainId || !isInitialized) return
 
         return wcWallet.onRequest(async (event) => {
             setSessionRequest(event)
         })
-    }, [wcWallet, chainId, kernelProvider, isInitialized])
+    }, [wcWallet, chainId, walletClient, isInitialized])
 
     // Update chainId/address
     useEffect(() => {
@@ -128,18 +132,18 @@ export function WalletConnectProvider({
             id: number
             result: unknown
         }> => {
-            if (!kernelProvider)
+            if (!walletClient)
                 throw new Error("Kernel provider not initialized")
 
             const { params, id } = event
             const { request } = params
             if (request.method === "personal_sign") {
                 const requestParamsMessage = request.params[0]
-
                 const message = hexToUtf8(requestParamsMessage)
-                const signedMessage = await kernelProvider.request({
-                    ...request,
-                    params: [message, request.params[1]]
+                const address: `0x${string}` = request.params[1]!
+                const signedMessage = await walletClient.request({
+                    method: "personal_sign",
+                    params: [message, address] as [`0x${string}`, `0x${string}`]
                 })
 
                 return { id, result: signedMessage, jsonrpc: "2.0" }
@@ -149,22 +153,22 @@ export function WalletConnectProvider({
                 const requestParamsMessage = request.params[1]
 
                 const message = hexToUtf8(requestParamsMessage)
-                const signedMessage = await kernelProvider.request({
-                    ...request,
-                    params: [request.params[0], message]
+                const signedMessage = await walletClient.request({
+                    method: "eth_sign",
+                    params: [request.params[0], message] as [`0x${string}`, `0x${string}`]
                 })
 
                 return { id, result: signedMessage, jsonrpc: "2.0" }
             }
 
-            const result = await kernelProvider.request(request)
+            const result = await walletClient.request(request as ExplicitAny)
             return {
                 jsonrpc: "2.0",
                 id: id,
                 result
             }
         },
-        [kernelProvider]
+        [walletClient]
     )
 
     const approveSessionRequest = useCallback(async () => {

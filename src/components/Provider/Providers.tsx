@@ -9,7 +9,7 @@ import { injected } from "wagmi/connectors";
 import { optimismSepolia, baseSepolia } from "wagmi/chains";
 import { ModalProvider } from "./ModalProvider";
 import { AccountProvider } from "./AccountProvider";
-import { wrapEOAConnector, passkeyConnector } from "@/sdk";
+import { wrapEOAConnector, passkeyConnector, YiProvider } from "@/sdk";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const config = createConfig({
@@ -28,9 +28,11 @@ export default function Providers({ children }: { children: ReactNode }) {
       <Notifications />
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <AccountProvider>
-            <ModalProvider>{children}</ModalProvider>
-          </AccountProvider>
+          <YiProvider>
+            <AccountProvider>
+              <ModalProvider>{children}</ModalProvider>
+            </AccountProvider>
+          </YiProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </MantineProvider>
