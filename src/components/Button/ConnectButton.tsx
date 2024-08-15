@@ -1,6 +1,6 @@
 import { Button, Group, Flex, Text } from "@mantine/core";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
-import { passkeyConnector, usePasskey } from "@build-with-yi/wagmi";
+import { passkeyConnector, usePasskey } from "@/sdk";
 
 export function ConnectButton() {
   const { connectors, connect, isPending } = useConnect();
@@ -34,7 +34,12 @@ export function ConnectButton() {
         {connectors.map((connector) => {
           if (connector.type === passkeyConnector.type) {
             return (
-              <Flex direction="column" align="center" justify="center" key={connector.id}>
+              <Flex
+                direction="column"
+                align="center"
+                justify="center"
+                key={connector.id}
+              >
                 <Text>Connect with Passkey</Text>
                 <div className="flex flex-row gap-2">
                   <Button
@@ -62,7 +67,9 @@ export function ConnectButton() {
               onClick={() => connect({ connector })}
               disabled={isPending}
             >
-              {`Connect ${connector.name !== "Injected" ? `with ${connector.name}` : ''}`}
+              {`Connect ${
+                connector.name !== "Injected" ? `with ${connector.name}` : ""
+              }`}
             </Button>
           );
         })}

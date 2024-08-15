@@ -1,7 +1,7 @@
 import { Modal } from "@mantine/core";
 import { useModal } from "@/hooks";
-import { useReadCab } from "@build-with-yi/wagmi";
-import { useEnableCab } from "@build-with-yi/wagmi";
+import { useReadCab } from "@/sdk";
+import { useEnableCab } from "@/sdk";
 import { supportedChains } from "@/utils/constants";
 import { useState, useEffect, useCallback } from "react";
 import {

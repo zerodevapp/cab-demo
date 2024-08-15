@@ -17,7 +17,7 @@ import { useModal, usePaymasterRegistered } from "@/hooks";
 import SmartAccountBalanceBlock from "@/components/SmartAccountBalanceBlock";
 import EOABalanceBlock from "@/components/EOABalanceBlock";
 import TransferBlock from "@/components/TransferBlock";
-import { useEnableCab } from "@build-with-yi/wagmi";
+import { useEnableCab } from "@/sdk";
 
 export default function Home() {
   const [hydration, setHydration] = useState(false);

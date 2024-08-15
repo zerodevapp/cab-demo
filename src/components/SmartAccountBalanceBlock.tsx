@@ -1,5 +1,5 @@
 import { useTokenBalance } from "@/hooks";
-import { useReadCab } from "@build-with-yi/wagmi";
+import { useReadCab } from "@/sdk";
 import { useAccount } from "wagmi";
 import { formatEther } from "viem";
 import { supportedChains } from "@/utils/constants";

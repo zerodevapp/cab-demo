@@ -9,7 +9,7 @@ import { injected } from "wagmi/connectors";
 import { optimismSepolia, baseSepolia } from "wagmi/chains";
 import { ModalProvider } from "./ModalProvider";
 import { AccountProvider } from "./AccountProvider";
-import { wrapEOAConnector, passkeyConnector } from "@build-with-yi/wagmi";
+import { wrapEOAConnector, passkeyConnector } from "@/sdk";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const config = createConfig({
