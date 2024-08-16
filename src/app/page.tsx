@@ -19,7 +19,7 @@ import SmartAccountBalanceBlock from "@/components/SmartAccountBalanceBlock";
 import EOABalanceBlock from "@/components/EOABalanceBlock";
 import TransferBlock from "@/components/TransferBlock";
 import WalletConnect from "@/components/WalletConnect";
-import { useEnableCab } from "@/sdk";
+import { useEnableCab } from "@build-with-yi/wagmi";
 
 export default function Home() {
   const [hydration, setHydration] = useState(false);
@@ -32,7 +32,7 @@ export default function Home() {
   useEffect(() => setHydration(true), []);
 
   useEffect(() => {
-    if (isConnected && !isPending && !isEnabledOnCurrentChain("6TEST")) {
+    if (isConnected && !isPending && !isEnabledOnCurrentChain("USDC")) {
       console.log("openRegisterModal");
       openRegisterModal?.();
     }
@@ -80,12 +80,8 @@ export default function Home() {
           >
             <Tabs defaultValue="embedded">
               <Tabs.List mb="md">
-                <Tabs.Tab value="embedded">
-                  Embedded tx
-                </Tabs.Tab>
-                <Tabs.Tab value="wallet-connect">
-                  Wallet Connect
-                </Tabs.Tab>
+                <Tabs.Tab value="embedded">Embedded tx</Tabs.Tab>
+                <Tabs.Tab value="wallet-connect">Wallet Connect</Tabs.Tab>
               </Tabs.List>
               <Tabs.Panel value="embedded">
                 <Flex direction="column" gap="md" style={{ flex: 1 }}>

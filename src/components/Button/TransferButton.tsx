@@ -5,7 +5,7 @@ import { erc20Abi, parseEther } from "viem";
 import { useAccount, useSwitchChain } from "wagmi";
 import { useWriteContracts, useCallsStatus } from "wagmi/experimental";
 import { useTokenBalance, useEoaAddress } from "@/hooks";
-import { useReadCab } from "@/sdk";
+import { useReadCab } from "@build-with-yi/wagmi";
 import { useMemo } from "react";
 import { notifications } from "@mantine/notifications";
 

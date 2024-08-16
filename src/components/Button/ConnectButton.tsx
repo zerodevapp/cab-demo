@@ -1,6 +1,6 @@
 import { Button, Group, Flex, Text } from "@mantine/core";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
-import { passkeyConnector, usePasskey } from "@/sdk";
+import { passkeyConnector, usePasskey } from "@build-with-yi/wagmi";
 
 export function ConnectButton() {
   const { connectors, connect, isPending } = useConnect();

@@ -1,7 +1,7 @@
 import { Modal } from "@mantine/core";
 import { useModal } from "@/hooks";
-import { useReadCab } from "@/sdk";
-import { useEnableCab } from "@/sdk";
+import { useReadCab } from "@build-with-yi/wagmi";
+import { useEnableCab } from "@build-with-yi/wagmi";
 import { supportedChains } from "@/utils/constants";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -55,9 +55,9 @@ function RegisterPaymaster() {
 
   const register = useCallback(async () => {
     try {
-      if (!isEnabledOnCurrentChain("6TEST")) {
+      if (!isEnabledOnCurrentChain("USDC")) {
         await enableCab({
-          tokens: [{ name: "6TEST", networks: [11155420, 84532] }],
+          tokens: [{ name: "USDC", networks: [137, 42161] }],
         });
         setActiveStep(2);
       }
@@ -71,7 +71,7 @@ function RegisterPaymaster() {
   }, [isEnabledOnCurrentChain, enableCab]);
 
   useEffect(() => {
-    setActiveStep(isEnabledOnCurrentChain("6TEST") ? 2 : 0);
+    setActiveStep(isEnabledOnCurrentChain("USDC") ? 2 : 0);
   }, [isEnabledOnCurrentChain]);
 
   const closeModal = () => {

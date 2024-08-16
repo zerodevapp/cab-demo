@@ -1,8 +1,6 @@
-import { useTokenBalance } from "@/hooks";
-import { useReadCab } from "@/sdk";
+import { useReadCab } from "@build-with-yi/wagmi";
 import { useAccount } from "wagmi";
 import { formatEther } from "viem";
-import { supportedChains } from "@/utils/constants";
 import { Text, Card, Badge, Stack, Flex } from "@mantine/core";
 import { BalanceItem } from "@/components/BalanceItem";
 
