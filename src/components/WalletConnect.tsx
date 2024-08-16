@@ -31,8 +31,8 @@ function WalletConnect() {
     },
   });
 
-  const switchChain = async () => {
-    await switchChainAsync({ chainId: 42161 });
+  const switchChain = async (chainId: number) => {
+    await switchChainAsync({ chainId });
     console.log("Chain switched to Arbitrum");
   };
 
@@ -46,9 +46,15 @@ function WalletConnect() {
       </p>
       <button
         className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
-        onClick={switchChain}
+        onClick={() => switchChain(42161)}
       >
         Switch to Arbitrum
+      </button>
+      <button
+        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
+        onClick={() => switchChain(137)}
+      >
+        Switch to Polygon
       </button>
       <div className="flex gap-2 mb-4">
         <input
