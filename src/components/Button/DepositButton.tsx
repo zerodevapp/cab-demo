@@ -2,15 +2,12 @@ import { useEffect } from "react";
 import { Button, Tooltip } from "@mantine/core";
 import {
   testErc20Address,
-  vaultManagerAddress,
-  testErc20VaultAddress,
   getPaymaster,
   supportedChains,
 } from "@/utils/constants";
 import { useReadCab } from "@build-with-yi/wagmi";
 import { useMemo, useCallback, useState } from "react";
-import { parseEther, parseAbi, erc20Abi } from "viem";
-import { vaultManagerAbi } from "@/abis/vaultManagerAbi";
+import { parseEther, parseAbi } from "viem";
 import { notifications } from "@mantine/notifications";
 import { useAccount, useSwitchChain } from "wagmi";
 import { useWriteContracts, useCallsStatus } from "wagmi/experimental";
@@ -45,18 +42,6 @@ export function DepositButton() {
         abi: parseAbi(["function mint(address,uint256)"]),
         functionName: "mint",
         args: [accountAddress, amount],
-      },
-      {
-        address: testErc20Address,
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [vaultManagerAddress, amount],
-      },
-      {
-        address: vaultManagerAddress,
-        abi: vaultManagerAbi,
-        functionName: "deposit",
-        args: [testErc20Address, testErc20VaultAddress, amount, false],
       },
     ];
   }, [accountAddress]);
