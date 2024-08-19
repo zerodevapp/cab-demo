@@ -1,6 +1,6 @@
 import { useReadCab } from "@build-with-yi/wagmi";
 import { useAccount } from "wagmi";
-import { formatEther } from "viem";
+import { formatUnits } from "viem";
 import { Text, Card, Badge, Stack, Flex } from "@mantine/core";
 import { BalanceItem } from "@/components/BalanceItem";
 
@@ -22,7 +22,7 @@ export default function SmartBalanceBlock({ cab }: { cab: boolean }) {
 
       <Stack gap="sm">
         {cab && balance && (
-          <BalanceItem chain="CAB" balance={formatEther(balance)} highlight />
+          <BalanceItem chain="CAB" balance={formatUnits(balance, 6)} highlight />
         )}
       </Stack>
     </Card>
