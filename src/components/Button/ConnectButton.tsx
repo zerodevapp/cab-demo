@@ -34,7 +34,12 @@ export function ConnectButton() {
         {connectors.map((connector) => {
           if (connector.type === passkeyConnector.type) {
             return (
-              <Flex direction="column" align="center" justify="center" key={connector.id}>
+              <Flex
+                direction="column"
+                align="center"
+                justify="center"
+                key={connector.id}
+              >
                 <Text>Connect with Passkey</Text>
                 <div className="flex flex-row gap-2">
                   <Button
@@ -62,7 +67,9 @@ export function ConnectButton() {
               onClick={() => connect({ connector })}
               disabled={isPending}
             >
-              {`Connect ${connector.name !== "Injected" ? `with ${connector.name}` : ''}`}
+              {`Connect ${
+                connector.name !== "Injected" ? `with ${connector.name}` : ""
+              }`}
             </Button>
           );
         })}
