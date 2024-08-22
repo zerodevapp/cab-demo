@@ -12,6 +12,7 @@ import { AccountProvider } from "./AccountProvider";
 import {
   wrapEOAConnector,
   passkeyConnector,
+  googleConnector,
   YiProvider,
 } from "@build-with-yi/wagmi";
 
@@ -22,7 +23,11 @@ export default function Providers({ children }: { children: ReactNode }) {
       [polygon.id]: http(),
       [arbitrum.id]: http(),
     },
-    connectors: [wrapEOAConnector(injected()), passkeyConnector()],
+    connectors: [
+      wrapEOAConnector(injected()),
+      passkeyConnector(),
+      googleConnector(),
+    ],
     multiInjectedProviderDiscovery: false,
   });
   const queryClient = new QueryClient();

@@ -58,8 +58,6 @@ export const polygonUSDCAddress: Address = "0x3c499c542cef5e3811e1192ce70d8cc03d
 export const arbitrumUSDCAddress: Address = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
 export const testErc20Address: Address = "0x3870419ba2bbf0127060bcb37f69a1b1c090992b";
 
-export const testErc20VaultAddress: Address = "0x8652d7cf55e8cbc976fe53584366c6989c8ae0e5"
-
 export const vaultManagerAddress: Address = "0x456e6c1c701e91D8A078Be9b5fDF3FA40E01CcBe"
 
 export const repayTokens = [{
