@@ -1,6 +1,6 @@
 import { supportedChains } from "@/utils/constants";
 import { useTokenBalance, useEoaAddress } from "@/hooks";
-import { Card, Text, Flex, Badge } from "@mantine/core";
+import { Card, Text, Flex, Badge, CopyButton } from "@mantine/core";
 import { formatEther } from "viem";
 import { BalanceItem } from "@/components/BalanceItem";
 
@@ -22,9 +22,18 @@ export default function EOABalanceBlock() {
         <Text size="xl" w={300} mr="xs">
           EOA
         </Text>
-        <Badge color="blue" variant="light">
-          {address && `${address.slice(0, 6)}...${address.slice(-2)}`}
-        </Badge>
+        <CopyButton value={address ?? ""}>
+          {({ copied, copy }) => (
+            <Badge
+              color={copied ? "teal" : "blue"}
+              variant="light"
+              style={{ cursor: "pointer" }}
+              onClick={copy}
+            >
+              {copied ? "Copied!" : `${address?.slice(0, 6)}...${address?.slice(-2)}`}
+            </Badge>
+          )}
+        </CopyButton>
       </Flex>
       <BalanceItem
         chain={supportedChains[0].chain.name}

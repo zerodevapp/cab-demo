@@ -1,9 +1,7 @@
-import { useTokenBalance } from "@/hooks";
 import { useReadCab } from "@build-with-yi/wagmi";
 import { useAccount } from "wagmi";
 import { formatEther } from "viem";
-import { supportedChains } from "@/utils/constants";
-import { Text, Card, Badge, Stack, Flex } from "@mantine/core";
+import { Text, Card, Badge, Stack, Flex, CopyButton } from "@mantine/core";
 import { BalanceItem } from "@/components/BalanceItem";
 
 export default function SmartBalanceBlock({ cab }: { cab: boolean }) {
@@ -17,9 +15,18 @@ export default function SmartBalanceBlock({ cab }: { cab: boolean }) {
         <Text size="xl" w={300} mr="xs">
           Smart Account
         </Text>
-        <Badge color="blue" variant="light">
-          {smartAccountAddress?.slice(0, 6)}...{smartAccountAddress?.slice(-2)}
-        </Badge>
+        <CopyButton value={smartAccountAddress}>
+          {({ copied, copy }) => (
+            <Badge
+              color={copied ? "teal" : "blue"}
+              variant="light"
+              style={{ cursor: "pointer" }}
+              onClick={copy}
+            >
+              {copied ? "Copied!" : `${smartAccountAddress?.slice(0, 6)}...${smartAccountAddress?.slice(-2)}`}
+            </Badge>
+          )}
+        </CopyButton>
       </Flex>
 
       <Stack gap="sm">
