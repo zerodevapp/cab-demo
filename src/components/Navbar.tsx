@@ -1,16 +1,16 @@
 "use client";
 import { Flex, Button } from "@mantine/core";
 import { ConnectButton, DepositButton } from "./Button";
-import { useAccount } from "wagmi"
-import { IconExternalLink } from '@tabler/icons-react';
+import { useAccount } from "wagmi";
+import { IconExternalLink } from "@tabler/icons-react";
 
 export default function Navbar() {
-  const { isConnected, address, chainId } = useAccount();
+  const { isConnected, address } = useAccount();
 
   const getJiffyScanUrl = () => {
-    const network = chainId === 84532 ? 'base-sepolia' : 
-                    chainId === 11155420 ? 'optimism-sepolia' : '';
-    return `https://jiffyscan.xyz/account/${address}?network=${network}`;
+    // const network = chainId === 84532 ? 'base-sepolia' :
+    //                 chainId === 11155420 ? 'optimism-sepolia' : '';
+    return `https://jiffyscan.xyz/account/${address}?network=base-sepolia`;
   };
 
   return (
@@ -35,7 +35,7 @@ export default function Navbar() {
             >
               View on JiffyScan
             </Button>
-            <DepositButton />  
+            <DepositButton />
             <ConnectButton />
           </>
         )}
