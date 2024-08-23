@@ -8,22 +8,23 @@ import { useModal, usePaymasterRegistered } from "@/hooks";
 import SmartAccountBalanceBlock from "@/components/SmartAccountBalanceBlock";
 import EOABalanceBlock from "@/components/EOABalanceBlock";
 import TransferBlock from "@/components/TransferBlock";
-import { useEnableCab } from "@build-with-yi/wagmi";
+import { useEnableCab } from "@magic-account/wagmi";
+import SessionBlock from "@/components/SessionBlock";
 
 export default function Home() {
   const [hydration, setHydration] = useState(false);
   const { openRegisterModal } = useModal();
   const { isRegistered } = usePaymasterRegistered();
-  const { isEnabled } = useEnableCab();
+  const { isEnabledOnCurrentChain } = useEnableCab();
   const { isConnected } = useAccount();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => setHydration(true), []);
 
   useEffect(() => {
-    console.log('isEnabled', isEnabled)
-    if (isConnected && isEnabled === false) openRegisterModal?.();
-  }, [isEnabled, isConnected, openRegisterModal])
+    console.log('isEnabled', isEnabledOnCurrentChain("6TEST"))
+    if (isConnected && isEnabledOnCurrentChain("6TEST") === false) openRegisterModal?.();
+  }, [isEnabledOnCurrentChain, isConnected, openRegisterModal])
 
   if (!hydration) return null;
 
@@ -70,6 +71,7 @@ export default function Home() {
                 </Grid.Col>
               </Grid>
               <TransferBlock cab={checked} />
+              <SessionBlock/>
             </Flex>
           </Container>
           <Box mb="xl" />

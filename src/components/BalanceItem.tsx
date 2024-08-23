@@ -10,6 +10,7 @@ export function BalanceItem({ chain, logo, balance, highlight = false }: {
 }) {
   return (
     <Box
+       // @ts-ignore
       style={(theme: any) => ({
         backgroundColor: highlight ? theme.colors.yellow[1] : theme.colors.gray[0],
         padding: theme.spacing.sm,

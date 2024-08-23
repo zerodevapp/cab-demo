@@ -1,14 +1,14 @@
 import {
-  ReactNode,
+  type ReactNode,
   createContext,
   useCallback,
   useMemo,
   useState,
 } from "react";
 import RegisterModal from "../Modal/RegisterModal";
-import { RepayTokenInfo, SponsorTokenInfo } from "@/types";
-import { GetEntryPointVersion, UserOperation } from 'permissionless/types'
-import { type EntryPoint } from 'permissionless/types'
+import type { RepayTokenInfo, SponsorTokenInfo } from "@/types";
+import type { GetEntryPointVersion, UserOperation } from 'permissionless/types'
+import type { EntryPoint } from 'permissionless/types'
 
 export function useModalStateValue() {
   const [isModalOpen, setModalOpen] = useState(false);

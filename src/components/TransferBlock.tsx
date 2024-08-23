@@ -2,7 +2,7 @@ import { Title, Flex } from "@mantine/core";
 import { supportedChains } from "@/utils/constants";
 import { useMemo } from "react";
 import { useTokenBalance } from "@/hooks";
-import { useReadCab } from "@build-with-yi/wagmi";
+import { useReadCab } from "@magic-account/wagmi";
 import { TransferButton } from "@/components/Button";
 import { useAccount } from "wagmi";
 
