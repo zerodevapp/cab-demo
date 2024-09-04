@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAccount, useWalletClient } from "wagmi";
 import {
   walletActionsErc7715,
@@ -8,6 +8,7 @@ import {
 import { useWriteContracts } from "wagmi/experimental";
 import {
   ENTRYPOINT_ADDRESS_V07,
+  createBundlerClient,
   createSmartAccountClient,
 } from "permissionless";
 import {
@@ -55,11 +56,25 @@ function SessionInfo({
   sessionType: "WALLET" | "ACCOUNT" | undefined;
 }) {
   const { address } = useAccount();
+  const {data} = useWalletClient()
   const { data: hash, writeContracts, isPending, error } = useWriteContracts();
   const [dappManagedTxHash, setDappManagedTxHash] = useState<Hex>();
   const [dappManagedTxIsPending, setDappManagedTxIsPending] = useState(false);
 
   console.log({ error });
+  useEffect(()=>{
+    if (hash) {
+      fetchTxReceipt(hash as Hex)
+    }
+  }, [hash])
+  const fetchTxReceipt = async (hash: Hex) => {
+    const bundlerClient = createBundlerClient({
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      transport: http(BUNDLER_URL)
+    })
+    const receipt = await bundlerClient.waitForUserOperationReceipt({hash,timeout: 100_000})
+    console.log({receipt})
+  }
 
   const sendDappManagedTx = async () => {
     if (!privateKey) return;
@@ -101,7 +116,7 @@ function SessionInfo({
       // @ts-ignore
       account: kernelClient.account,
       userOperation: {
-        callData: await kernelClient.account.encodeCallData({
+        callData: await kernelClient.account!.encodeCallData({
           to: testErc20Address,
           data: encodeFunctionData({
             abi: parseAbi(["function mint(address,uint256)"]),
@@ -137,13 +152,13 @@ function SessionInfo({
                     address: testErc20Address,
                     abi: erc20Abi,
                     functionName: "approve",
-                    args: [erc20SpenderAddress, parseEther("0.00003")],
+                    args: [erc20SpenderAddress, parseEther("0.000029")],
                   },
                   {
                     address: erc20SpenderAddress,
                     abi: erc20SpenderAbi,
                     functionName: "spendAllowance",
-                    args: [testErc20Address, parseEther("0.00003")],
+                    args: [testErc20Address, parseEther("0.000029")],
                   },
                 ],
                 capabilities: {

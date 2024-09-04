@@ -10,7 +10,7 @@ export default function SmartBalanceBlock({ cab }: { cab: boolean }) {
   const { address } = useAccount();
   const smartAccountAddress = address ?? "0x";
 
-  const { data: balance } = useReadCab();
+  const { data: balance } = useReadCab({structuralSharing: false});
   const { data: tokenBalanceRepay, isSuccess: isRepaySuccess } =
     useTokenBalance({
       address: smartAccountAddress,

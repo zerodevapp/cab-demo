@@ -18,7 +18,7 @@ import { usePaymasterRegistered } from "@/hooks";
 
 export function DepositButton() {
   const [isDepositPending, setIsDepositPending] = useState(false);
-  const { refetch } = useReadCab();
+  const { refetch } = useReadCab({structuralSharing: false});
   const { isRegistered } = usePaymasterRegistered();
   const { writeContracts, data: id } = useWriteContracts();
   const { switchChainAsync } = useSwitchChain();
@@ -29,6 +29,7 @@ export function DepositButton() {
       // Poll every 2 seconds until the calls are confirmed
       refetchInterval: (data) =>
         data.state.data?.status === "CONFIRMED" ? false : 2000,
+      structuralSharing: false
     },
   });
   const { address: accountAddress, chainId: currentChainId } = useAccount();

@@ -14,7 +14,7 @@ export default function TransferBlock({ cab }: { cab: boolean }) {
     address: smartAccountAddress,
     chainId: chainId,
   });
-  const { isPending: isCabBalancePending } = useReadCab();
+  const { isPending: isCabBalancePending } = useReadCab({structuralSharing: false});
 
   const loading = useMemo(() => {
     return cab ? isCabBalancePending : isTokenBalancePending;

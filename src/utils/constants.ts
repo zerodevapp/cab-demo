@@ -1,4 +1,4 @@
-import { optimismSepolia, baseSepolia } from 'wagmi/chains';
+import { optimismSepolia, sepolia } from 'wagmi/chains';
 import type { Address } from 'viem';
 
 export const ZERODEV_APP_ID = process.env.NEXT_PUBLIC_ZERODEV_APP_ID || "";
@@ -6,6 +6,8 @@ export const ZERODEV_APP_ID = process.env.NEXT_PUBLIC_ZERODEV_APP_ID || "";
 export const zerodevOpSepoliaId = process.env.NEXT_PUBLIC_ZERODEV_OP_SEPOLIA_PROJECT_ID || "";
 
 export const zerodevBaseSepoliaId = process.env.NEXT_PUBLIC_ZERODEV_BASE_SEPOLIA_PROJECT_ID || "";
+
+export const zerodevSepoliaId = process.env.NEXT_PUBLIC_ZERODEV_SEPOLIA_PROJECT_ID || "";
 
 export const supportedAccounts = [
   "kernel",
@@ -21,11 +23,11 @@ export const supportedChains = [
     isRepay: true,
   },
   {
-    id: 84532,
-    logo: "/icons/base.svg",
-    chain: baseSepolia,
-    projectId: zerodevBaseSepoliaId,
-    publicRpc: process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL,
+    id: 11_155_111,
+    logo: "/icons/eth.svg",
+    chain: sepolia,
+    projectId: zerodevSepoliaId,
+    publicRpc: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL,
     isRepay: false,
   },
 ]
@@ -73,17 +75,17 @@ export const getPaymaster = (chainId: number) => {
   return `https://rpc.zerodev.app/api/v2/paymaster/${chain.projectId}`;
 };
 
-export const invoiceManagerAddress: Address = "0x80F3b8c46381d5cF4B737742D5FE323b7CaA43b1";
+export const invoiceManagerAddress: Address = "0x8c286376c1BcE82FD27006Dae00c3821a3Be8Cf3";
 
-export const cabPaymasterAddress: Address = "0x066aB66D299600E006abD1af0d41AC872b77aeb6";
+export const cabPaymasterAddress: Address = "0xe899da923bc1750f8411805bf7d6db587fb3656f";
 
 export const testErc20Address: Address = "0x3870419ba2bbf0127060bcb37f69a1b1c090992b";
 
-export const testErc20VaultAddress: Address = "0x8652d7cf55e8cbc976fe53584366c6989c8ae0e5"
+export const testErc20VaultAddress: Address = "0xb6e62f6ab9ecc65fa3d997673b761f941e335449"
 
 export const erc20SpenderAddress= "0x7f9ae753D86c04a7C13004eaf2A97Fa95F61128F"
 
-export const vaultManagerAddress: Address = "0x456e6c1c701e91D8A078Be9b5fDF3FA40E01CcBe"
+export const vaultManagerAddress: Address = "0x1b002d67c7F832db7c73835a54370D7c0BA8E438"
 
 export const repayTokens = [{
   address: testErc20Address,

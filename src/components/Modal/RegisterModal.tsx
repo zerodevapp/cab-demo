@@ -55,12 +55,12 @@ function RegisterPaymaster() {
       refetch();
     },
   });
-  const { refetch } = useReadCab();
+  const { refetch } = useReadCab({structuralSharing: false});
 
   const register = useCallback(async () => {
     try {
       if (!isCabEnabled("6TEST")) {
-        await enableCab({tokens:[{name: "6TEST", networks: [84532, 11155420]}],});
+        await enableCab({tokens:[{name: "6TEST", networks: [11155111, 11155420]}],});
         setActiveStep(2);
       }
     } catch (error) {

@@ -25,12 +25,12 @@ export function TransferButton({
   const { address: smartAccountAddress, chainId: currentChainId } =
     useAccount();
   const { refetch } = useTokenBalance({ address, chainId });
-  const { refetch: refetchCabBalance } = useReadCab();
+  const { refetch: refetchCabBalance } = useReadCab({structuralSharing: false});
   const { data: tokenBalance } = useTokenBalance({
     address: smartAccountAddress,
     chainId: chainId,
   });
-  const { data: cabBalance } = useReadCab();
+  const { data: cabBalance } = useReadCab({structuralSharing: false});
   const { writeContractsAsync, data: id } = useWriteContracts();
   const { data: callsStatus, refetch: refetchCallsStatus } = useCallsStatus({
     id: id as string,
@@ -39,6 +39,7 @@ export function TransferButton({
       // Poll every 2 seconds until the calls are confirmed
       refetchInterval: (data) =>
         data.state.data?.status === "CONFIRMED" ? false : 2000,
+      structuralSharing: false
     },
   });
   const status = callsStatus?.status;
