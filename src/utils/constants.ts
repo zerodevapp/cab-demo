@@ -75,17 +75,17 @@ export const getPaymaster = (chainId: number) => {
   return `https://rpc.zerodev.app/api/v2/paymaster/${chain.projectId}`;
 };
 
-export const invoiceManagerAddress: Address = "0x8c286376c1BcE82FD27006Dae00c3821a3Be8Cf3";
+export const invoiceManagerAddress: Address = "0x5C560ee0e414d635ccaE2208cfA13715a969c631";
 
-export const cabPaymasterAddress: Address = "0xe899da923bc1750f8411805bf7d6db587fb3656f";
+export const cabPaymasterAddress: Address = "0x78b09791499931CC36919Ef6A38BEC8B569E7f57";
 
 export const testErc20Address: Address = "0x3870419ba2bbf0127060bcb37f69a1b1c090992b";
 
-export const testErc20VaultAddress: Address = "0xb6e62f6ab9ecc65fa3d997673b761f941e335449"
+export const testErc20VaultAddress: Address = "0xaf9bec58bb2c173fef7d9ade9bbc3e179f3e8993"
 
 export const erc20SpenderAddress= "0x7f9ae753D86c04a7C13004eaf2A97Fa95F61128F"
 
-export const vaultManagerAddress: Address = "0x1b002d67c7F832db7c73835a54370D7c0BA8E438"
+export const vaultManagerAddress: Address = "0xFa4A202a24Ff90f7C3843b2CefCde012dCb2762B"
 
 export const repayTokens = [{
   address: testErc20Address,
